@@ -1,0 +1,20 @@
+* {
+    display: block;
+    margin: 30px;
+}
+
+form * {
+    display: inline-block;
+    margin: 10px;
+}
+
+p, pre {
+    font-family: Arial, sans-serif;
+    font-size: 40px;
+}
+
+#preDatos {
+    text-align: center;
+    font-style: italic;
+    color:blue;
+}
