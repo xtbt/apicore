@@ -1,8 +1,8 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-
+import json
 import urllib
 from core import Database
-from models import moodsselect
+from models import Mood
 
 
 class HTTPHandler(BaseHTTPRequestHandler):
@@ -10,29 +10,45 @@ class HTTPHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
-        self.wfile.write(data.encode('utf-8'))
-    
+        json_data = json.dumps(data, ensure_ascii=False)
+        self.wfile.write(json_data.encode('utf-8'))
+
     def dispatch(self, method):
         uri = urllib.parse.urlparse(self.path).path
-        # resource_id = uri.split('/')[-1] if len(uri.split('/')) > 2 else None
-        # body = self.rfile.read(int(self.headers.get('Content-Length', 0))).decode('utf-8')
-        dbconn = Database.get_db_connection()
+        resource_id = uri.split('/')[-1] if len(uri.split('/')) > 2 else None
+        body = self.rfile.read(int(self.headers.get('Content-Length', 0))).decode('utf-8')
+        dbconn = Database.Database().get_connection()
         try:
             if method == 'GET' and uri == '/healthcheck':
-                self.send_json_response(
-                    '{"status": "ok",' \
-                    '"message": "Server is running"}'
-                    )
+                self.send_json_response({
+                    'status': 'ok',
+                    'message': 'Server is running',
+                    'debug': body
+                })
             elif method == 'GET' and uri == '/moods':
-                elements = moodsselect.get_moods(dbconn)
-                self.send_json_response(
-                    '{"status": "ok", ' \
-                    '"message": "GET request received for resource"}'
-                    )
+                elements = Mood.get_moods(dbconn)
+                self.send_json_response({
+                    'status': 'ok',
+                    'data': elements
+                    })
+            elif method == 'POST' and uri == '/moods':
+                data = json.loads(body)
+                result = Mood.create_mood(dbconn, data)
+                self.send_json_response({
+                    'status': 'ok',
+                    'ID': result
+                })
+            elif method == 'PUT' and uri.startswith('/moods/'):
+                data = json.loads(body)
+                Mood.modify_mood(dbconn, resource_id, data)
+                self.send_json_response({
+                    'status': 'ok',
+                    'message': 'Mood updated'
+                })
             else:
-                self.send_json_response('{"error": "Method not allowed"}', status=405)
+                self.send_json_response({'error': 'Method not allowed'}, status=405)
         except Exception as e:
-            self.send_json_response(f'{{"error": "{str(e)}"}}', status=500)
+            self.send_json_response({'error': str(e)}, status=500)
 
     def do_GET(self):
         self.dispatch('GET')
