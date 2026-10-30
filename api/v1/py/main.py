@@ -1,7 +1,6 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import json
 import urllib
-from core import Database
 from models import Mood
 
 
@@ -17,7 +16,6 @@ class HTTPHandler(BaseHTTPRequestHandler):
         uri = urllib.parse.urlparse(self.path).path
         resource_id = uri.split('/')[-1] if len(uri.split('/')) > 2 else None
         body = self.rfile.read(int(self.headers.get('Content-Length', 0))).decode('utf-8')
-        dbconn = Database.Database().get_connection()
         try:
             if method == 'GET' and uri == '/healthcheck':
                 self.send_json_response({
@@ -26,27 +24,27 @@ class HTTPHandler(BaseHTTPRequestHandler):
                     'debug': body
                 })
             elif method == 'GET' and uri == '/moods':
-                elements = Mood.get_moods(dbconn)
+                elements = Mood.get_moods()
                 self.send_json_response({
                     'status': 'ok',
                     'data': elements
                     })
             elif method == 'POST' and uri == '/moods':
                 data = json.loads(body)
-                result = Mood.create_mood(dbconn, data)
+                result = Mood.create_mood(data)
                 self.send_json_response({
                     'status': 'ok',
                     'ID': result
                 })
             elif method == 'PUT' and uri.startswith('/moods/'):
                 data = json.loads(body)
-                Mood.modify_mood(dbconn, resource_id, data)
+                Mood.modify_mood(resource_id, data)
                 self.send_json_response({
                     'status': 'ok',
                     'message': 'Mood updated'
                 })
             elif method == 'DELETE' and uri.startswith('/moods/'):
-                Mood.delete_mood(dbconn, resource_id)
+                Mood.delete_mood(resource_id)
                 self.send_json_response({
                     'status': 'ok',
                     'message': 'Mood deleted'

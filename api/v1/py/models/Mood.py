@@ -1,10 +1,14 @@
-def create_mood(dbconn, data):
+import pymysql
+from core import Database
+
+def create_mood(data):
     mood_name = data.get('MoodName')
     mood_status = data.get('MoodStatus')
     if not mood_name:
         raise ValueError('MoodName is required')
     if mood_status not in ('Active', 'Inactive'):
         raise ValueError('MoodStatus must be "Active" or "Inactive"')
+    dbconn = Database.Database().get_connection()
     cur = dbconn.cursor()
     cur.execute(
         "INSERT INTO moods (MoodId, MoodName, MoodStatus) VALUES (%s, %s, %s)",
@@ -16,20 +20,23 @@ def create_mood(dbconn, data):
     return new_id
 
 
-def get_moods(dbconn):
+def get_moods():
+    dbconn = Database.Database().get_connection()
     cur = dbconn.cursor()
     cur.execute("SELECT * FROM moods")
     results = cur.fetchall()
     cur.close()
     return results
 
-def modify_mood(dbconn, mood_id, data):
+
+def modify_mood(mood_id, data):
     mood_name = data.get('MoodName')
     mood_status = data.get('MoodStatus')
     if not mood_name:
         raise ValueError('MoodName is required')
     if mood_status not in ('Active', 'Inactive'):
         raise ValueError('MoodStatus must be "Active" or "Inactive"')
+    dbconn = Database.Database().get_connection()
     cur = dbconn.cursor()
     cur.execute(
         "UPDATE moods SET MoodName = %s, MoodStatus = %s WHERE MoodId = %s",
@@ -38,7 +45,9 @@ def modify_mood(dbconn, mood_id, data):
     dbconn.commit()
     cur.close()
 
-def delete_mood(dbconn, mood_id):
+
+def delete_mood(mood_id):
+    dbconn = Database.Database().get_connection()
     cur = dbconn.cursor()
     cur.execute(
         "DELETE FROM moods WHERE MoodId = %s",
