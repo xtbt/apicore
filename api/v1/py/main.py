@@ -45,6 +45,12 @@ class HTTPHandler(BaseHTTPRequestHandler):
                     'status': 'ok',
                     'message': 'Mood updated'
                 })
+            elif method == 'DELETE' and uri.startswith('/moods/'):
+                Mood.delete_mood(dbconn, resource_id)
+                self.send_json_response({
+                    'status': 'ok',
+                    'message': 'Mood deleted'
+                })
             else:
                 self.send_json_response({'error': 'Method not allowed'}, status=405)
         except Exception as e:

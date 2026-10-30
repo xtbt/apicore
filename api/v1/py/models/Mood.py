@@ -37,3 +37,12 @@ def modify_mood(dbconn, mood_id, data):
     )
     dbconn.commit()
     cur.close()
+
+def delete_mood(dbconn, mood_id):
+    cur = dbconn.cursor()
+    cur.execute(
+        "DELETE FROM moods WHERE MoodId = %s",
+        (mood_id,)
+    )
+    dbconn.commit()
+    cur.close()
