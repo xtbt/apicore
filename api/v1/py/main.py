@@ -3,6 +3,7 @@ import json
 import urllib
 from models import Mood
 
+mood = Mood.Mood()
 
 class HTTPHandler(BaseHTTPRequestHandler):
     def send_json_response(self, data, status=200):
@@ -24,27 +25,36 @@ class HTTPHandler(BaseHTTPRequestHandler):
                     'debug': body
                 })
             elif method == 'GET' and uri == '/moods':
-                elements = Mood.get_moods()
+                elements = mood.get_moods()
                 self.send_json_response({
                     'status': 'ok',
                     'data': elements
                     })
+            elif method == 'GET' and uri.startswith('/moods/'):
+                element = mood.get_mood_by_id(resource_id)
+                if element:
+                    self.send_json_response({
+                        'status': 'ok',
+                        'data': element
+                    })
+                else:
+                    self.send_json_response({'error': 'Mood not found'}, status=404)
             elif method == 'POST' and uri == '/moods':
                 data = json.loads(body)
-                result = Mood.create_mood(data)
+                result = mood.create_mood(data)
                 self.send_json_response({
                     'status': 'ok',
                     'ID': result
                 })
             elif method == 'PUT' and uri.startswith('/moods/'):
                 data = json.loads(body)
-                Mood.modify_mood(resource_id, data)
+                mood.modify_mood(resource_id, data)
                 self.send_json_response({
                     'status': 'ok',
                     'message': 'Mood updated'
                 })
             elif method == 'DELETE' and uri.startswith('/moods/'):
-                Mood.delete_mood(resource_id)
+                mood.delete_mood(resource_id)
                 self.send_json_response({
                     'status': 'ok',
                     'message': 'Mood deleted'
