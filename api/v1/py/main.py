@@ -1,9 +1,7 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import json
 import urllib
-from models import Mood
-
-mood = Mood.Mood()
+from controllers.MoodController import MoodController
 
 class HTTPHandler(BaseHTTPRequestHandler):
     def send_json_response(self, data, status=200):
@@ -25,13 +23,14 @@ class HTTPHandler(BaseHTTPRequestHandler):
                     'debug': body
                 })
             elif method == 'GET' and uri == '/moods':
-                elements = mood.get_moods()
+                mood = MoodController()
+                elements = mood.get_moods('moods')
                 self.send_json_response({
                     'status': 'ok',
                     'data': elements
                     })
             elif method == 'GET' and uri.startswith('/moods/'):
-                element = mood.get_mood_by_id(resource_id)
+                element = mood.get_mood_by_id('moods', resource_id)
                 if element:
                     self.send_json_response({
                         'status': 'ok',

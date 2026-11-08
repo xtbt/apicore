@@ -2,9 +2,10 @@ from core import Database
 
 class BaseModel:
     ID_COLUMN = 'Id'
+    db_conn = Database.Database().get_connection()
 
     def __init__(self):
-        self.db_conn = Database.Database().get_connection()
+        print(self.db_conn)
 
     def create(self, table_name, data):
         columns = ', '.join(data.keys())
@@ -21,6 +22,7 @@ class BaseModel:
         return new_id
     
     def get_all(self, table_name):
+        print(self.db_conn)
         cur = self.db_conn.cursor()
         cur.execute(f"SELECT * FROM {table_name}")
         results = cur.fetchall()
