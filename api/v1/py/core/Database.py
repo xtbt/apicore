@@ -1,4 +1,4 @@
-import pymysql
+import mysql.connector
 
 
 class Database:
@@ -11,8 +11,8 @@ class Database:
         self.connection = None
 
     def connect(self):
-        if self.connection is None or not self.connection.open:
-            self.connection = pymysql.connect(
+        if self.connection is None or not self.connection.is_connected():
+            self.connection = mysql.connector.connect(
                 host=self.host,
                 port=self.port,
                 user=self.user,
@@ -26,6 +26,6 @@ class Database:
         return self.connect()
 
     def close(self):
-        if self.connection is not None and self.connection.open:
+        if self.connection is not None and self.connection.is_connected():
             self.connection.close()
         self.connection = None
