@@ -4,11 +4,17 @@ import signal
 import sys
 import urllib.parse
 from core.Router import Router
+from core.Exceptions import AppError
+from core.Settings import settings
+from routers.AuthRouter import register_auth_routes
 from routers.MoodRouter import register_mood_routes
+from routers.UserRouter import register_user_routes
 
 # Route table shared by all requests
 router = Router()
+register_auth_routes(router)
 register_mood_routes(router)
+register_user_routes(router)
 
 class HTTPHandler(BaseHTTPRequestHandler):
     def send_json_response(self, data, status=200):
@@ -29,7 +35,9 @@ class HTTPHandler(BaseHTTPRequestHandler):
                     'debug': body
                 }
             else:
-                status, payload = router.dispatch(method, uri, body)
+                status, payload = router.dispatch(method, uri, body, self.headers)
+        except AppError as e:
+            status, payload = e.status_code, {'error': str(e)}
         except ValueError as e:
             status, payload = 400, {'error': str(e)}
         except Exception as e:
@@ -49,10 +57,12 @@ class HTTPHandler(BaseHTTPRequestHandler):
         self.dispatch('DELETE')
 
 if __name__ == "__main__":
-    server = ThreadingHTTPServer(('localhost', 65000), HTTPHandler)
+    if not settings.JWT_SECRET:
+        sys.exit('JWT_SECRET is missing: set it in .env')
+    server = ThreadingHTTPServer((settings.HOST, settings.PORT), HTTPHandler)
     # Treat SIGTERM (kill, IDE stop button) like Ctrl+C so the port is always released
     signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(0))
-    print("Server started on http://localhost:65000" )
+    print(f"Server started on http://{settings.HOST}:{settings.PORT}")
     try:
         server.serve_forever()
     except (KeyboardInterrupt, SystemExit):

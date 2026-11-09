@@ -11,6 +11,8 @@ class BaseModel:
     ID_COLUMN = 'Id'    # Primary key column (override if different)
     COLUMNS = ()        # Writable columns (whitelist, excludes the primary key)
 
+    HIDDEN_COLUMNS = () # Columns never returned by get_all/get_by_id (e.g. passwords)
+
     # Results of update()
     NOT_FOUND = 'not_found'
     UNCHANGED = 'unchanged'
@@ -56,12 +58,18 @@ class BaseModel:
         finally:
             cur.close()
 
+    def _public(self, row):
+        """Remove HIDDEN_COLUMNS from a row (None passes through)."""
+        if row is None:
+            return None
+        return {k: v for k, v in row.items() if k not in self.HIDDEN_COLUMNS}
+
     def get_all(self):
         """Return all records of the table."""
         cur = self.db_conn.cursor(dictionary=True)
         try:
             cur.execute(f"SELECT * FROM {self.TABLE_NAME}")
-            return cur.fetchall()
+            return [self._public(row) for row in cur.fetchall()]
         finally:
             cur.close()
 
@@ -73,7 +81,7 @@ class BaseModel:
                 f"SELECT * FROM {self.TABLE_NAME} WHERE {self.ID_COLUMN} = %s",
                 (record_id,)
             )
-            return cur.fetchone()
+            return self._public(cur.fetchone())
         finally:
             cur.close()
 

@@ -1,13 +1,15 @@
 import mysql.connector
+from core.Settings import settings
 
 
 class Database:
-    def __init__(self, host='localhost', port=3306, user='root', password='root', database='apitest'):
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.database = database
+    def __init__(self, host=None, port=None, user=None, password=None, database=None):
+        # Every parameter falls back to the value configured in .env
+        self.host = host or settings.DB_HOST
+        self.port = port or settings.DB_PORT
+        self.user = user or settings.DB_USER
+        self.password = password or settings.DB_PASSWORD
+        self.database = database or settings.DB_NAME
         self.connection = None
 
     def connect(self):
