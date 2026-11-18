@@ -13,7 +13,7 @@ class BaseModel:
     ID_COLUMN = 'Id'    # Primary key column (override if different)
     COLUMNS = ()        # Writable columns (whitelist, excludes the primary key)
 
-    HIDDEN_COLUMNS = () # Columns never returned by get_all/get_by_id (e.g. passwords)
+    HIDDEN_COLUMNS = ()  # Columns never returned by get_all/get_by_id (e.g. passwords)
 
     # Results of update()
     NOT_FOUND = 'not_found'

@@ -94,17 +94,28 @@ class Router:
                 return 200, {'status': 'ok', 'message': f'{label} deleted'}
             return not_found
 
-        self.add_route('GET', path, controller_class, list_all, public or 'GET' in public_methods)
-        self.add_route('GET', item, controller_class, get_one, public or 'GET' in public_methods)
-        self.add_route('POST', path, controller_class, create, public or 'POST' in public_methods)
-        self.add_route('PUT', item, controller_class, update_with(lambda c, i, d: c.update(i, d)), public or 'PUT' in public_methods)
-        self.add_route('PATCH', item, controller_class, update_with(lambda c, i, d: c.patch(i, d)), public or 'PATCH' in public_methods)
-        self.add_route('DELETE', item, controller_class, delete, public or 'DELETE' in public_methods)
+        self.add_route('GET', path, controller_class, list_all,
+                       public or 'GET' in public_methods)
+        self.add_route('GET', item, controller_class, get_one,
+                       public or 'GET' in public_methods)
+        self.add_route('POST', path, controller_class, create,
+                       public or 'POST' in public_methods)
+        self.add_route('PUT', item, controller_class,
+                       update_with(lambda c, i, d: c.update(i, d)),
+                       public or 'PUT' in public_methods)
+        self.add_route('PATCH', item, controller_class,
+                       update_with(lambda c, i, d: c.patch(i, d)),
+                       public or 'PATCH' in public_methods)
+        self.add_route('DELETE', item, controller_class, delete,
+                       public or 'DELETE' in public_methods)
 
     def _authenticate(self, headers):
-        """Validate the bearer token of a protected route. Returns (raw_token, payload)."""
+        """Validate the bearer token of a protected route. Returns (raw_token, payload).
+
+        The scheme is compared case-insensitively, as RFC 7235 defines it.
+        """
         scheme, _, token = headers.get('Authorization', '').partition(' ')
-        if scheme != 'Bearer' or not token:
+        if scheme.lower() != 'bearer' or not token:
             raise UnauthorizedError('Missing or malformed Authorization header')
         return token, self.authenticator(token)
 

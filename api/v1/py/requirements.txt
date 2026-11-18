@@ -1,1 +1,4 @@
 mysql-connector-python==26.10.0
+# zoneinfo reads the system timezone database; Windows has none, so tzdata is
+# needed there for APP_TIMEZONE (America/Tijuana) to resolve.
+tzdata; sys_platform == "win32"

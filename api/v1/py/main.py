@@ -1,17 +1,18 @@
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from datetime import datetime
 import json
 import logging
 import signal
 import sys
 import time
 import urllib.parse
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
 from core.date_utils import LOCAL_TZ
-from services.token_service import decode_token
 from core.Exceptions import AppError, PayloadTooLargeError
 from core.Router import Router
 from core.Settings import settings
 from routers import register_all
+from services.token_service import decode_token
 
 MAX_BODY_BYTES = 1024 * 1024  # 1 MB cap for request bodies
 
@@ -48,7 +49,12 @@ class HTTPHandler(BaseHTTPRequestHandler):
             self.send_header(name, value)
         self.end_headers()
         if send_body and body:
-            self.wfile.write(body)
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                # The client hung up before reading the response: nothing to send
+                self.close_connection = True
+                logging.info('Client disconnected before reading the response')
 
     def read_body(self):
         """Read the request body, rejecting an invalid or oversized Content-Length."""
@@ -125,8 +131,10 @@ class HTTPHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    if not settings.JWT_SECRET:
-        sys.exit('JWT_SECRET is missing: set it in .env')
+    try:
+        settings.validate()
+    except ValueError as error:
+        sys.exit(str(error))
     server = ThreadingHTTPServer((settings.APP_HOST, settings.APP_PORT), HTTPHandler)
     # Treat SIGTERM (kill, IDE stop button) like Ctrl+C so the port is always released
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))

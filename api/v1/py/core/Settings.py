@@ -8,10 +8,15 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 class Settings:
+    REQUIRED = ('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET')  # no usable default
+
     def __init__(self, env_path=None):
         env_path = env_path or os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
         values = self._read_env_file(env_path)
-        get = lambda key, default=None: os.environ.get(key, values.get(key, default))
+
+        def get(key, default=None):
+            """Real environment variable first, then the .env file, then the default."""
+            return os.environ.get(key, values.get(key, default))
 
         self.APP_HOST = get('APP_HOST', 'localhost')
         self.APP_PORT = int(get('APP_PORT', 8000))
@@ -29,6 +34,16 @@ class Settings:
         self.JWT_ALGORITHM = get('JWT_ALGORITHM', 'HS256')
         self.TOKEN_LIFETIME_MINUTES = int(get('TOKEN_LIFETIME_MINUTES', 60))
         self.TOKEN_MIN_REMAINING_MINUTES = int(get('TOKEN_MIN_REMAINING_MINUTES', 10))
+
+    def validate(self):
+        """Raise ValueError listing every required setting that is missing.
+
+        Called at startup, so a misconfigured server fails immediately instead of
+        on the first request.
+        """
+        missing = [name for name in self.REQUIRED if not getattr(self, name)]
+        if missing:
+            raise ValueError('Missing required setting(s): ' + ', '.join(missing))
 
     @staticmethod
     def _read_env_file(path):

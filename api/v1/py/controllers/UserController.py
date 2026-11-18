@@ -97,11 +97,14 @@ class UserController(BaseController):
         return data
 
     def delete(self, record_id):
-        """Delete the user and revoke all of its tokens."""
-        self.authorize(record_id, 'delete')  # before revoking: a refused delete changes nothing
+        """Delete the user and revoke all of its tokens.
+
+        authorize() runs once here, before revoking: a refused delete changes nothing.
+        """
+        self.authorize(record_id, 'delete')
         tokens = UserToken()
         try:
             tokens.delete_by_user(record_id)
         finally:
             tokens.close()
-        return super().delete(record_id)
+        return self.model.delete(record_id)
