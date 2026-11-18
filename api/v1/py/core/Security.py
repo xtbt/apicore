@@ -1,8 +1,8 @@
-"""Security: password hashing and manual JWT (HS256) generation/validation.
+"""Security: password hashing and manual JWT (HS256) signing/verification.
 
-Layer: core (cross-cutting). Standard library only. Tokens are persisted in
-`users_tokens` (one row per token, so a user can be logged in on many devices);
-revoking a token means deleting its row.
+Layer: core (cross-cutting). Standard library only: pure crypto and payload
+handling, no database access here (token persistence lives in
+services/token_service.py).
 """
 import base64
 import hashlib
@@ -10,17 +10,13 @@ import hmac
 import json
 import secrets
 import time
-from datetime import datetime, timedelta, timezone
 
+from core.date_utils import isoformat_from_timestamp
 from core.Exceptions import UnauthorizedError
 from core.Settings import settings
-from models.User import User
-from models.UserToken import UserToken
 
 HASH_ALGORITHM = 'pbkdf2_sha256'
 HASH_ITERATIONS = 100000
-# `users_tokens.TokenExpiration` is NOT NULL, so persistent tokens get a far-future date
-PERSISTENT_EXPIRATION = datetime(9999, 12, 31, 23, 59, 59)
 
 
 # --- Password hashing ---
@@ -67,18 +63,15 @@ def _sign(signing_input: str) -> str:
     return base64url_encode(hmac.new(settings.JWT_SECRET.encode(), signing_input.encode(), hashlib.sha256).digest())
 
 
-def _hash_token(token: str) -> str:
+def hash_token(token: str) -> str:
     """SHA-256 of the raw token: this is what is stored and looked up in the DB."""
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def generate_token(user_id: int, role: str, lifetime_minutes: int, min_remaining_minutes: int,
-                   persistent: bool = False, extra_claims: dict = None) -> str:
-    """Create a signed JWT and persist its hash in `users_tokens`.
-
-    lifetime_minutes is ignored when persistent=True (no `exp` claim).
-    min_remaining_minutes is only a claim: the client decides when to renew.
-    """
+def generate_payload(user_id: int, role: str, lifetime_minutes: int, min_remaining_minutes: int,
+                     persistent: bool = False, extra_claims: dict = None) -> dict:
+    """Claims dict of a new token. lifetime_minutes is ignored when persistent=True
+    (no `exp` claim); min_remaining_minutes is only a claim for the client."""
     now = int(time.time())
     payload = {
         'sub': user_id, 'role': role, 'iat': now, 'jti': secrets.token_hex(16),
@@ -87,32 +80,21 @@ def generate_token(user_id: int, role: str, lifetime_minutes: int, min_remaining
     if not persistent:
         payload['exp'] = now + lifetime_minutes * 60
     payload.update(extra_claims or {})
+    return payload
 
+
+def encode_token(payload: dict) -> str:
+    """Sign "header.payload" (HS256) and return the compact JWT."""
     header = {'alg': settings.JWT_ALGORITHM, 'typ': 'JWT'}
     signing_input = '.'.join(base64url_encode(json.dumps(part, separators=(',', ':')).encode())
                              for part in (header, payload))
-    token = f'{signing_input}.{_sign(signing_input)}'
-
-    expiration = PERSISTENT_EXPIRATION if persistent else datetime.fromtimestamp(payload['exp'], timezone.utc).replace(tzinfo=None)
-    model = UserToken()
-    try:
-        model.create({
-            'UserId': user_id,
-            'TokenHash': _hash_token(token),
-            'TokenExpiration': expiration,
-            'TokenCreatedAt': datetime.fromtimestamp(now, timezone.utc).replace(tzinfo=None),
-        })
-    finally:
-        model.close()
-    return token
+    return f'{signing_input}.{_sign(signing_input)}'
 
 
-def decode_token(token: str) -> dict:
-    """Validate a token and return its payload.
+def verify_token(token: str) -> dict:
+    """Validate structure, algorithm, signature and expiration (no DB check).
 
-    Checks: structure, signature, algorithm, expiration (skipped for persistent
-    tokens), presence in `users_tokens` (not revoked) and that the user is Active.
-    Raises UnauthorizedError on any failure.
+    Returns the payload. Raises UnauthorizedError on any failure.
     """
     try:
         header_b64, payload_b64, signature = token.split('.')
@@ -127,27 +109,7 @@ def decode_token(token: str) -> dict:
         raise UnauthorizedError('Invalid token')
     if 'exp' in payload and payload['exp'] < time.time():
         raise UnauthorizedError('Token expired')
-
-    token_model, user_model = UserToken(), User()
-    try:
-        if token_model.get_by_hash(_hash_token(token)) is None:
-            raise UnauthorizedError('Token revoked or unknown')
-        user = user_model.get_by_id(payload.get('sub'))
-        if user is None or user['UserStatus'] != 'Active':
-            raise UnauthorizedError('User inactive or not found')
-    finally:
-        token_model.close()
-        user_model.close()
     return payload
-
-
-def revoke_token(token: str) -> bool:
-    """Delete the token row. Returns True if it existed."""
-    model = UserToken()
-    try:
-        return model.delete_by_hash(_hash_token(token)) > 0
-    finally:
-        model.close()
 
 
 def build_token_response(token: str) -> dict:
@@ -155,7 +117,7 @@ def build_token_response(token: str) -> dict:
     payload = json.loads(base64url_decode(token.split('.')[1]))
     expires_at = None
     if 'exp' in payload:
-        expires_at = datetime.fromtimestamp(payload['exp'], timezone.utc).isoformat()
+        expires_at = isoformat_from_timestamp(payload['exp'])
     return {
         'token': token,
         'token_type': 'Bearer',

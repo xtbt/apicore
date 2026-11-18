@@ -4,6 +4,7 @@ Layer: core (cross-cutting). Real environment variables override the .env file.
 It must never import from controllers, models or routers.
 """
 import os
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 class Settings:
@@ -12,8 +13,13 @@ class Settings:
         values = self._read_env_file(env_path)
         get = lambda key, default=None: os.environ.get(key, values.get(key, default))
 
-        self.HOST = get('HOST', 'localhost')
-        self.PORT = int(get('PORT', 8000))
+        self.APP_HOST = get('APP_HOST', 'localhost')
+        self.APP_PORT = int(get('APP_PORT', 8000))
+        self.APP_TIMEZONE = get('APP_TIMEZONE', 'America/Tijuana')
+        try:
+            ZoneInfo(self.APP_TIMEZONE)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(f'APP_TIMEZONE is not a valid IANA timezone: {self.APP_TIMEZONE}')
         self.DB_HOST = get('DB_HOST', 'localhost')
         self.DB_PORT = int(get('DB_PORT', 3306))
         self.DB_NAME = get('DB_NAME')

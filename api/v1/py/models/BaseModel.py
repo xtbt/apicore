@@ -3,6 +3,8 @@
 Layer: models. Entity models only declare TABLE_NAME, ID_COLUMN and COLUMNS
 (plus any query that is specific to that entity). It must never handle HTTP.
 """
+from mysql.connector import IntegrityError
+
 from core.Database import Database
 
 
@@ -19,7 +21,7 @@ class BaseModel:
     UPDATED = 'updated'
 
     def __init__(self):
-        # One connection per model instance (pymysql connections are not thread-safe)
+        # One pooled connection per model instance (connections are not shared between threads)
         self.database = Database()
         self.db_conn = self.database.get_connection()
 
@@ -55,6 +57,8 @@ class BaseModel:
             )
             self.db_conn.commit()
             return cur.lastrowid
+        except IntegrityError:
+            raise ValueError('Record already exists')  # UNIQUE key violated (also under concurrent requests)
         finally:
             cur.close()
 
@@ -64,11 +68,16 @@ class BaseModel:
             return None
         return {k: v for k, v in row.items() if k not in self.HIDDEN_COLUMNS}
 
-    def get_all(self):
-        """Return all records of the table."""
+    def get_all(self, page=None, size=None):
+        """Return records of the table, optionally paginated (page starts at 1)."""
+        sql = f"SELECT * FROM {self.TABLE_NAME}"
+        params = ()
+        if size:
+            sql += ' LIMIT %s OFFSET %s'
+            params = (size, (max(page or 1, 1) - 1) * size)
         cur = self.db_conn.cursor(dictionary=True)
         try:
-            cur.execute(f"SELECT * FROM {self.TABLE_NAME}")
+            cur.execute(sql, params)
             return [self._public(row) for row in cur.fetchall()]
         finally:
             cur.close()
@@ -113,6 +122,8 @@ class BaseModel:
             )
             self.db_conn.commit()
             return self.UPDATED
+        except IntegrityError:
+            raise ValueError('Record already exists')
         finally:
             cur.close()
 

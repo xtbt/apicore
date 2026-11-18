@@ -1,33 +1,68 @@
-import mysql.connector
+import threading
+
+from mysql.connector import pooling
+
+from core.Exceptions import ServiceUnavailableError
 from core.Settings import settings
+
+POOL_SIZE = 32  # connector maximum
+ACQUIRE_TIMEOUT_SECONDS = 30
+
+_pool = None
+_pool_lock = threading.Lock()
+# One slot per borrowed connection: ThreadingHTTPServer can start more threads
+# than the pool size, so extra requests wait here instead of failing
+_slots = threading.BoundedSemaphore(POOL_SIZE)
+
+
+def _get_pool():
+    """Create the shared connection pool on first use."""
+    global _pool
+    with _pool_lock:
+        if _pool is None:
+            _pool = pooling.MySQLConnectionPool(
+                pool_name='apicore',
+                pool_size=POOL_SIZE,
+                host=settings.DB_HOST,
+                port=settings.DB_PORT,
+                user=settings.DB_USER,
+                password=settings.DB_PASSWORD,
+                database=settings.DB_NAME,
+                # Store and compare timestamps in UTC: NOW() then equals UTC_TIMESTAMP()
+                # whatever the MySQL server timezone is (named zones need the tz tables)
+                time_zone='+00:00'
+            )
+    return _pool
 
 
 class Database:
-    def __init__(self, host=None, port=None, user=None, password=None, database=None):
-        # Every parameter falls back to the value configured in .env
-        self.host = host or settings.DB_HOST
-        self.port = port or settings.DB_PORT
-        self.user = user or settings.DB_USER
-        self.password = password or settings.DB_PASSWORD
-        self.database = database or settings.DB_NAME
+    def __init__(self):
         self.connection = None
+        self._slot = False
 
     def connect(self):
-        if self.connection is None or not self.connection.is_connected():
-            self.connection = mysql.connector.connect(
-                host=self.host,
-                port=self.port,
-                user=self.user,
-                password=self.password,
-                database=self.database
-            )
-            print("Database connection established")
+        """Borrow a connection from the pool (reused while this instance lives)."""
+        if self.connection is not None and self.connection.is_connected():
+            return self.connection
+        self.close()
+        if not _slots.acquire(timeout=ACQUIRE_TIMEOUT_SECONDS):
+            raise ServiceUnavailableError('Server busy, try again later')
+        self._slot = True
+        try:
+            self.connection = _get_pool().get_connection()
+        except Exception:
+            self.close()
+            raise
         return self.connection
 
     def get_connection(self):
         return self.connect()
 
     def close(self):
-        if self.connection is not None and self.connection.is_connected():
+        """Return the connection to the pool and release its slot."""
+        if self.connection is not None:
             self.connection.close()
         self.connection = None
+        if self._slot:
+            self._slot = False
+            _slots.release()

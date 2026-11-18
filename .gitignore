@@ -1,3 +1,6 @@
 .env
 **venv
 API_Structure.md
+__pycache__/
+*.py[cod]
+.DS_Store

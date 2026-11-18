@@ -7,13 +7,42 @@ import json
 import re
 
 from core.Exceptions import UnauthorizedError
-from core.Security import decode_token
+
+MAX_PAGE_SIZE = 100  # upper bound for ?size= on list endpoints
+
+
+def json_object(body):
+    """Parse the request body: it must be a JSON object (dict)."""
+    data = json.loads(body)
+    if not isinstance(data, dict):
+        raise ValueError('Body must be a JSON object')
+    return data
+
+
+def positive_int(query, name):
+    """Parse an optional positive integer query parameter (0 when absent).
+
+    Raises ValueError with a generic message, so no interpreter detail leaks.
+    """
+    raw = query.get(name)
+    if raw is None or raw == '':
+        return 0
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f'{name} must be a positive integer')
+    if value < 1:
+        raise ValueError(f'{name} must be a positive integer')
+    return value
 
 
 class Router:
-    def __init__(self):
+    def __init__(self, authenticator=None):
         # Each route: (method, compiled regex, handler, controller class, public)
         self.routes = []
+        # authenticator(token) -> payload of a verified, non-revoked, Active user;
+        # injected from main.py, so this module has no model dependency
+        self.authenticator = authenticator
 
     def add_route(self, method, pattern, controller_class, handler, public=False):
         """Register a route.
@@ -26,26 +55,34 @@ class Router:
         self.routes.append((method, re.compile(f'^{regex}$'), handler, controller_class, public))
 
     def add_crud_routes(self, path, controller_class, label, public=False, public_methods=()):
-        """Register the 5 standard CRUD routes of an entity (reusable by any entity).
+        """Register the 6 standard CRUD routes (PUT = full payload, PATCH = partial) of an entity (reusable by any entity).
 
-        public: makes all 5 routes public. public_methods: HTTP methods made public
+        public: makes all routes public. public_methods: HTTP methods made public
         individually (e.g. ("POST",) for a self-registration endpoint).
         """
         item = f'{path}/{{id}}'
         not_found = (404, {'error': f'{label} not found'})
 
         def list_all(c, p, body):
-            return 200, {'status': 'ok', 'data': c.get_all()}
+            query = c.query or {}
+            page, size = positive_int(query, 'page'), positive_int(query, 'size')
+            if size > MAX_PAGE_SIZE:
+                raise ValueError(f'size must be {MAX_PAGE_SIZE} or less')
+            return 200, {'status': 'ok', 'data': c.get_all(page or None, size or None)}
 
         def get_one(c, p, body):
             element = c.get_by_id(p['id'])
             return (200, {'status': 'ok', 'data': element}) if element else not_found
 
         def create(c, p, body):
-            return 200, {'status': 'ok', 'ID': c.create(json.loads(body))}
+            return 200, {'status': 'ok', 'ID': c.create(json_object(body))}
 
-        def update(c, p, body):
-            result = c.update(p['id'], json.loads(body))
+        def update_with(action):
+            def handler(c, p, body):
+                return update_result(c, action(c, p['id'], json_object(body)))
+            return handler
+
+        def update_result(c, result):
             if result == c.model.NOT_FOUND:
                 return not_found
             if result == c.model.UNCHANGED:
@@ -60,19 +97,22 @@ class Router:
         self.add_route('GET', path, controller_class, list_all, public or 'GET' in public_methods)
         self.add_route('GET', item, controller_class, get_one, public or 'GET' in public_methods)
         self.add_route('POST', path, controller_class, create, public or 'POST' in public_methods)
-        self.add_route('PUT', item, controller_class, update, public or 'PUT' in public_methods)
+        self.add_route('PUT', item, controller_class, update_with(lambda c, i, d: c.update(i, d)), public or 'PUT' in public_methods)
+        self.add_route('PATCH', item, controller_class, update_with(lambda c, i, d: c.patch(i, d)), public or 'PATCH' in public_methods)
         self.add_route('DELETE', item, controller_class, delete, public or 'DELETE' in public_methods)
 
-    @staticmethod
-    def _authenticate(headers):
-        """Validate the bearer token of a protected route and return it (401 otherwise)."""
+    def _authenticate(self, headers):
+        """Validate the bearer token of a protected route. Returns (raw_token, payload)."""
         scheme, _, token = headers.get('Authorization', '').partition(' ')
         if scheme != 'Bearer' or not token:
             raise UnauthorizedError('Missing or malformed Authorization header')
-        decode_token(token)
-        return token
+        return token, self.authenticator(token)
 
-    def dispatch(self, method, path, body, headers):
+    def allowed_methods(self, path):
+        """HTTP methods registered for `path` (empty list when no pattern matches)."""
+        return [method for method, regex, _h, _c, _p in self.routes if regex.match(path)]
+
+    def dispatch(self, method, path, body, headers, query=None):
         """Run the matching route. Returns (status, payload).
 
         404 if no pattern matches the path; 405 if the path exists but not for
@@ -86,9 +126,20 @@ class Router:
             path_found = True
             if route_method != method:
                 continue
-            token = None if public else self._authenticate(headers)
+            token = payload = None
+            if not public:
+                token, payload = self._authenticate(headers)
+            elif headers.get('Authorization'):
+                # Public route that also accepts a token (e.g. POST /users): use it
+                # when valid so a privileged caller can assign roles, ignore it otherwise
+                try:
+                    token, payload = self._authenticate(headers)
+                except UnauthorizedError:
+                    pass
             controller = controller_class()
             controller.auth_token = token
+            controller.auth_user = payload
+            controller.query = query
             try:
                 return handler(controller, match.groupdict(), body)
             finally:
