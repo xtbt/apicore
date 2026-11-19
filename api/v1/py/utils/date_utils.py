@@ -8,7 +8,7 @@ on the machine clock settings.
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from core.Settings import settings
+from core.settings import settings
 
 LOCAL_TZ = ZoneInfo(settings.APP_TIMEZONE)
 

@@ -1,11 +1,11 @@
-"""Unit tests for core/Router.py: route matching, dispatch and request parsing.
+"""Unit tests for core/router.py: route matching, dispatch and request parsing.
 
 No server and no database: a stub controller stands in for a real one.
 """
 import unittest
 
-from core.Exceptions import UnauthorizedError
-from core.Router import MAX_PAGE_SIZE, Router, json_object, positive_int
+from core.exceptions import UnauthorizedError
+from core.router import MAX_PAGE_SIZE, Router, json_object, positive_int
 
 
 class StubController:

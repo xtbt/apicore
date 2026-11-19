@@ -1,5 +1,5 @@
 """Health routes: liveness probe (public, no database access)."""
-from controllers.HealthController import HealthController
+from controllers.health_controller import HealthController
 
 
 def register_routes(router):

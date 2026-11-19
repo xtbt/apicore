@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 
 import mysql.connector
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PORT = 65438  # Dedicated port for tests, distinct from the default 65000
 BASE_URL = f'http://localhost:{PORT}'
 TIJUANA = ZoneInfo('America/Tijuana')

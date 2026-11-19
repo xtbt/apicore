@@ -1,32 +1,19 @@
 """User controller: validation rules and password handling of the `users` entity."""
-from controllers.BaseController import BaseController
-from core.Exceptions import ForbiddenError
-from core.Security import hash_password
-from models.User import User
-from models.UserToken import UserToken
+from controllers.base_controller import BaseController
+from core.exceptions import ForbiddenError
+from core.security import hash_password
+from models.user import User
+from models.user_token import UserToken
+from schemas import user_schema
 
 
 class UserController(BaseController):
     MODEL_CLASS = User
-    REQUIRED = {'Username': 16, 'Name': 45, 'PaternalSurname': 25}
-    OPTIONAL = {'MaternalSurname': 25}
     PRIVILEGED_ROLES = ('Admin', 'God')  # the only roles allowed to assign UserRole
 
     def validate(self, data, partial=False):
-        for field, max_length in {**self.REQUIRED, **self.OPTIONAL}.items():
-            if partial and field not in data:
-                continue
-            value = data.get(field)
-            if value is not None and not isinstance(value, str):
-                raise ValueError(f'{field} must be a string')
-            if field in self.REQUIRED and not value:
-                raise ValueError(f'{field} is required')
-            if value and len(value) > max_length:
-                raise ValueError(f'{field} must be {max_length} chars max')
-        self._validate_enum(data, 'UserStatus', ('Active', 'Inactive'), partial)
-        if not partial:
-            data.setdefault('UserRole', 'User')  # self-registration via POST /users defaults to User
-        self._validate_enum(data, 'UserRole', ('God', 'Admin', 'User'), partial)
+        """Field rules live in schemas/user_schema.py."""
+        user_schema.validate(data, partial)
 
     def get_all(self, page=None, size=None):
         """The user list is restricted to Admin and God."""

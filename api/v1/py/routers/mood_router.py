@@ -1,5 +1,5 @@
 """Mood routes: only wires the `moods` URLs to MoodController (all protected)."""
-from controllers.MoodController import MoodController
+from controllers.mood_controller import MoodController
 
 
 def register_routes(router):

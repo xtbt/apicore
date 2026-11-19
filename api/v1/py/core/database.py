@@ -2,8 +2,8 @@ import threading
 
 from mysql.connector import pooling
 
-from core.Exceptions import ServiceUnavailableError
-from core.Settings import settings
+from core.exceptions import ServiceUnavailableError
+from core.settings import settings
 
 POOL_SIZE = 32  # connector maximum
 ACQUIRE_TIMEOUT_SECONDS = 30

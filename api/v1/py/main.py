@@ -8,9 +8,9 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from utils.date_utils import LOCAL_TZ
-from core.Exceptions import AppError, PayloadTooLargeError
-from core.Router import Router
-from core.Settings import settings
+from core.exceptions import AppError, PayloadTooLargeError
+from core.router import Router
+from core.settings import settings
 from routers import register_all
 from services.token_service import decode_token
 

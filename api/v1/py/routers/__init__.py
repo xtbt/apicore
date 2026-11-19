@@ -1,6 +1,6 @@
 """Discover and register route modules without editing the application entry point.
 
-Convention: each ``*Router.py`` module exports ``register_routes(router)``.
+Convention: each ``*_router.py`` module exports ``register_routes(router)``.
 Adding an entity router then requires only adding that module to this package.
 """
 from importlib import import_module
@@ -12,7 +12,7 @@ def register_all(router):
     modules = sorted(
         module.name
         for module in iter_modules(__path__)
-        if module.name.endswith('Router')
+        if module.name.endswith('_router')
     )
     for module_name in modules:
         module = import_module(f'{__name__}.{module_name}')

@@ -3,7 +3,7 @@
 A user may own many rows (one per device/session). Revoking a token means
 deleting its row.
 """
-from models.BaseModel import BaseModel
+from models.base_model import BaseModel
 
 
 class UserToken(BaseModel):

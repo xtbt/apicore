@@ -6,7 +6,7 @@ it must never contain business logic, SQL or HTTP server code.
 import json
 import re
 
-from core.Exceptions import UnauthorizedError
+from core.exceptions import UnauthorizedError
 
 MAX_PAGE_SIZE = 100  # upper bound for ?size= on list endpoints
 

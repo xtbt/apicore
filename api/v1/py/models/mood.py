@@ -1,5 +1,5 @@
 """Mood model: only the table definition of the `moods` entity."""
-from models.BaseModel import BaseModel
+from models.base_model import BaseModel
 
 
 class Mood(BaseModel):

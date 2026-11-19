@@ -5,7 +5,7 @@ Layer: models. Entity models only declare TABLE_NAME, ID_COLUMN and COLUMNS
 """
 from mysql.connector import IntegrityError
 
-from core.Database import Database
+from core.database import Database
 
 
 class BaseModel:

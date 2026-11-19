@@ -5,7 +5,7 @@ Layer: core (cross-cutting). In-memory and per process: counters reset on restar
 import threading
 import time
 
-from core.Exceptions import TooManyRequestsError
+from core.exceptions import TooManyRequestsError
 
 MAX_KEYS = 1024  # purge stale keys beyond this, so unknown usernames cannot grow memory
 

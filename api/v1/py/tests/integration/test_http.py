@@ -16,7 +16,7 @@ import unittest
 import urllib.error
 import urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PORT = 65434  # Dedicated port for tests, distinct from the default 65000
 BASE_URL = f'http://localhost:{PORT}'
 MAX_BODY_BYTES = 1024 * 1024

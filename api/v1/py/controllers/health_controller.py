@@ -1,5 +1,5 @@
 """Health controller: liveness probe. Stateless, no model and no database access."""
-from controllers.BaseController import BaseController
+from controllers.base_controller import BaseController
 
 
 class HealthController(BaseController):

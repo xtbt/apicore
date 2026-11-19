@@ -24,15 +24,8 @@ class BaseController:
         """Hook for entity rules. Raise ValueError when `data` is invalid.
 
         partial=True (PATCH): only the fields present in `data` are checked.
+        Entity controllers delegate to their schema in schemas/.
         """
-
-    @staticmethod
-    def _validate_enum(data, field, options, partial=False):
-        """Raise ValueError unless data[field] is one of `options` (absent is allowed when partial)."""
-        if partial and field not in data:
-            return
-        if data.get(field) not in options:
-            raise ValueError(f'{field} must be ' + ' or '.join(f'"{o}"' for o in options))
 
     def prepare(self, data, record_id=None):
         """Hook run after validate(): transform `data` before it is stored (record_id is None on create)."""

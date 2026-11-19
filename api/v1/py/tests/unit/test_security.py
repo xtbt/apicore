@@ -1,12 +1,12 @@
-"""Unit tests for core/Security.py: password hashing and JWT signing.
+"""Unit tests for core/security.py: password hashing and JWT signing.
 
 No server and no database: pure functions only.
 """
 import time
 import unittest
 
-from core.Exceptions import UnauthorizedError
-from core.Security import (base64url_decode, base64url_encode, build_token_response,
+from core.exceptions import UnauthorizedError
+from core.security import (base64url_decode, base64url_encode, build_token_response,
                            encode_token, generate_payload, hash_password, hash_token,
                            verify_password, verify_token)
 

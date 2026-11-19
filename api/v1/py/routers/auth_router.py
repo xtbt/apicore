@@ -1,6 +1,6 @@
 """Auth routes: login (public) and logout (requires token)."""
-from controllers.AuthController import AuthController
-from core.Router import json_object
+from controllers.auth_controller import AuthController
+from core.router import json_object
 
 
 def register_routes(router):

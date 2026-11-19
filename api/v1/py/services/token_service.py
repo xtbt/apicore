@@ -3,15 +3,15 @@
 Layer: services. Business rules and orchestration over the `users_tokens`
 repository (one row per token, so a user can be logged in on many devices;
 revoking a token means deleting its row). It never knows about HTTP: no
-request objects, no status codes. core/Security.py holds the pure crypto.
+request objects, no status codes. core/security.py holds the pure crypto.
 """
 from datetime import datetime
 import time
 
 from utils.date_utils import utc_from_timestamp, utc_now
-from core.Exceptions import UnauthorizedError
-from core.Security import encode_token, generate_payload, hash_token, verify_token
-from models.UserToken import UserToken
+from core.exceptions import UnauthorizedError
+from core.security import encode_token, generate_payload, hash_token, verify_token
+from models.user_token import UserToken
 
 # `users_tokens.TokenExpiration` is NOT NULL, so persistent tokens get a far-future date
 PERSISTENT_EXPIRATION = datetime(9999, 12, 31, 23, 59, 59)

@@ -12,8 +12,8 @@ import secrets
 import time
 
 from utils.date_utils import isoformat_from_timestamp
-from core.Exceptions import UnauthorizedError
-from core.Settings import settings
+from core.exceptions import UnauthorizedError
+from core.settings import settings
 
 HASH_ALGORITHM = 'pbkdf2_sha256'
 HASH_ITERATIONS = 100000

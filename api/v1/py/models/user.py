@@ -1,5 +1,5 @@
 """User model: table definition and queries specific to `users`."""
-from models.BaseModel import BaseModel
+from models.base_model import BaseModel
 
 
 class User(BaseModel):
