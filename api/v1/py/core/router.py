@@ -119,11 +119,22 @@ class Router:
             raise UnauthorizedError('Missing or malformed Authorization header')
         return token, self.authenticator(token)
 
+    def authenticate(self, headers):
+        """Validate a bearer token for middleware use; returns (raw_token, payload)."""
+        return self._authenticate(headers)
+
+    def route_public(self, method, path):
+        """Return route visibility, or None if this method/path has no route."""
+        for route_method, regex, _handler, _controller, public in self.routes:
+            if route_method == method and regex.match(path):
+                return public
+        return None
+
     def allowed_methods(self, path):
         """HTTP methods registered for `path` (empty list when no pattern matches)."""
         return [method for method, regex, _h, _c, _p in self.routes if regex.match(path)]
 
-    def dispatch(self, method, path, body, headers, query=None):
+    def dispatch(self, method, path, body, headers, query=None, auth_context=None):
         """Run the matching route. Returns (status, payload).
 
         404 if no pattern matches the path; 405 if the path exists but not for
@@ -137,16 +148,18 @@ class Router:
             path_found = True
             if route_method != method:
                 continue
-            token = payload = None
-            if not public:
-                token, payload = self._authenticate(headers)
-            elif headers.get('Authorization'):
-                # Public route that also accepts a token (e.g. POST /users): use it
-                # when valid so a privileged caller can assign roles, ignore it otherwise
-                try:
+            if auth_context is not None:
+                token, payload = auth_context
+            else:
+                token = payload = None
+                if not public:
                     token, payload = self._authenticate(headers)
-                except UnauthorizedError:
-                    pass
+                elif headers.get('Authorization'):
+                    # Public route accepts a valid token, but does not require one
+                    try:
+                        token, payload = self._authenticate(headers)
+                    except UnauthorizedError:
+                        pass
             controller = controller_class()
             controller.auth_token = token
             controller.auth_user = payload

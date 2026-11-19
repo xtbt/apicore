@@ -13,6 +13,8 @@ from core.router import Router
 from core.settings import settings
 from routers import register_all
 from services.token_service import decode_token
+from middlewares import default_pipeline
+from middlewares.base import RequestContext
 
 MAX_BODY_BYTES = 1024 * 1024  # 1 MB cap for request bodies
 
@@ -31,6 +33,28 @@ logging.getLogger('mysql.connector').setLevel(logging.WARNING)
 # checks signature, expiration, revocation and that the user is Active.
 router = Router(authenticator=decode_token)
 register_all(router)
+
+
+def dispatch_request(request):
+    """Handle protocol-specific routes and delegate application routes to Router."""
+    method = request.method
+    if method == 'OPTIONS':
+        allowed = router.allowed_methods(request.path)
+        if not allowed:
+            raise AppError('Not found', 404)
+        request.extra_headers['Allow'] = ', '.join(sorted(set(allowed) | {'HEAD', 'OPTIONS'}))
+        return 204, None
+
+    # HEAD uses GET's route and headers, but HTTPHandler suppresses its body.
+    route_method = 'GET' if method == 'HEAD' else method
+    request.body = request.read_body()
+    return router.dispatch(
+        route_method, request.path, request.body, request.headers, request.query,
+        auth_context=(request.token, request.user),
+    )
+
+
+request_pipeline = default_pipeline(router, dispatch_request)
 
 
 class HTTPHandler(BaseHTTPRequestHandler):
@@ -79,31 +103,11 @@ class HTTPHandler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         uri = parsed.path
         query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
-        start = time.perf_counter()
-        extra_headers = {}
-        try:
-            if method == 'OPTIONS':
-                allowed = router.allowed_methods(uri)
-                if not allowed:
-                    raise AppError('Not found', 404)
-                extra_headers['Allow'] = ', '.join(sorted(set(allowed) | {'HEAD', 'OPTIONS'}))
-                status, payload = 204, None
-            else:
-                body = self.read_body()
-                # HEAD answers with the GET headers and no body
-                status, payload = router.dispatch(
-                    'GET' if method == 'HEAD' else method, uri, body, self.headers, query)
-        except AppError as e:
-            status, payload = e.status_code, {'error': str(e)}
-        except ValueError as e:
-            status, payload = 400, {'error': str(e)}
-        except Exception:
-            logging.exception('Unhandled error on %s %s', method, uri)
-            status, payload = 500, {'error': 'Internal server error'}
+        request = RequestContext(
+            method, uri, query, self.headers, self.client_address[0], self.read_body)
+        status, payload = request_pipeline(request)
         self.send_json_response(payload, status, send_body=method != 'HEAD',
-                                extra_headers=extra_headers)
-        logging.info('%s %s %s %s %dms', self.client_address[0], method, uri,
-                     status, (time.perf_counter() - start) * 1000)
+                                extra_headers=request.extra_headers)
 
     def log_message(self, format, *args):
         pass  # the default per-request stderr log is replaced by the structured one above
