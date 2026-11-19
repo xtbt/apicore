@@ -11,7 +11,7 @@ import json
 import secrets
 import time
 
-from core.date_utils import isoformat_from_timestamp
+from utils.date_utils import isoformat_from_timestamp
 from core.Exceptions import UnauthorizedError
 from core.Settings import settings
 
@@ -122,5 +122,6 @@ def build_token_response(token: str) -> dict:
         'token': token,
         'token_type': 'Bearer',
         'expires_at': expires_at,
+        'persistent': 'exp' not in payload,
         'min_remaining_minutes': payload['min_remaining_minutes'],
     }

@@ -50,7 +50,7 @@ def wait_for_server(timeout=5):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(f'{BASE_URL}/healthcheck', timeout=0.5):
+            with urllib.request.urlopen(f'{BASE_URL}/health', timeout=0.5):
                 return True
         except Exception:
             time.sleep(0.2)
@@ -195,8 +195,8 @@ class TestTimezone(unittest.TestCase):
 
     def test_3_request_log_uses_tijuana_time(self):
         """The request log timestamp is rendered in America/Tijuana."""
-        call('GET', '/healthcheck')
-        found = wait_for_log(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} INFO 127\.0\.0\.1 GET /healthcheck 200 \d+ms')
+        call('GET', '/health')
+        found = wait_for_log(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} INFO 127\.0\.0\.1 GET /health 200 \d+ms')
         self.assertIsNotNone(found, 'no request log line found: ' + repr(server_log[-5:]))
         logged_hour = int(re.search(r'(\d{2}):\d{2}:\d{2}', found).group(1))
         expected_hour = datetime.now(TIJUANA).hour

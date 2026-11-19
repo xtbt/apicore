@@ -18,12 +18,19 @@ class AuthController(BaseController):
     limiter = RateLimiter()  # shared by all requests: failed logins per username
 
     def login(self, data):
-        """Validate credentials and return a new token (a user may hold many at once)."""
+        """Validate credentials and return a new token (a user may hold many at once).
+
+        `Persistent: true` issues a token without expiration ("keep me signed in");
+        it stays valid until it is revoked (logout) or the user is deleted.
+        """
         username, password = data.get('Username'), data.get('Password')
         if not username or not password:
             raise ValueError('Username and Password are required')
         if not isinstance(username, str) or not isinstance(password, str):
             raise ValueError('Username and Password must be strings')
+        persistent = data.get('Persistent', False)
+        if not isinstance(persistent, bool):
+            raise ValueError('Persistent must be a boolean')
         key = username.lower()
         self.limiter.check(key)
         user = self.model.get_by_username(username)
@@ -42,7 +49,7 @@ class AuthController(BaseController):
             token = generate_token(
                 user['UserId'], user['UserRole'],
                 settings.TOKEN_LIFETIME_MINUTES, settings.TOKEN_MIN_REMAINING_MINUTES,
-                token_model=tokens
+                persistent=persistent, token_model=tokens
             )
         finally:
             tokens.close()

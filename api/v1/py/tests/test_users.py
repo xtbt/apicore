@@ -4,6 +4,7 @@ role permissions, pagination, logout and malformed bodies.
 Mirrors tests/test_moods.py: real server (main.py) and real MySQL database,
 with a dedicated throwaway user; the server subprocess is always terminated.
 """
+import base64
 import json
 import os
 import re
@@ -44,11 +45,11 @@ def call(method, path, data=None, token=None):
 
 
 def wait_for_server(timeout=5):
-    """Poll /healthcheck until the server answers or timeout is reached."""
+    """Poll /health until the server answers or timeout is reached."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(f'{BASE_URL}/healthcheck', timeout=0.5):
+            with urllib.request.urlopen(f'{BASE_URL}/health', timeout=0.5):
                 return True
         except Exception:
             time.sleep(0.2)
@@ -408,6 +409,37 @@ class TestUsersFlows(unittest.TestCase):
         """A JSON body that is not an object returns 400, not 500."""
         status, body = call('POST', '/auth/login', ['not', 'an', 'object'])
         self.assertEqual(status, 400)
+    def test_9_persistent_login(self):
+        """Persistent: true issues a token without expiration that survives until revoked."""
+        status, body = call('POST', '/auth/login', {
+            'Username': test_username, 'Password': test_password, 'Persistent': True})
+        self.assertEqual(status, 200)
+        data = body['data']
+        self.assertTrue(data['persistent'])
+        self.assertIsNone(data['expires_at'])
+        token = data['token']
+
+        # No `exp` claim in the payload
+        payload = token.split('.')[1]
+        claims = json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))
+        self.assertNotIn('exp', claims)
+
+        # Works like any other token, and can be revoked
+        self.assertEqual(call('GET', '/moods', token=token)[0], 200)
+        self.assertEqual(call('POST', '/auth/logout', token=token)[0], 200)
+        self.assertEqual(call('GET', '/moods', token=token)[0], 401)
+
+        # A normal login still expires
+        status, body = call('POST', '/auth/login', {
+            'Username': test_username, 'Password': test_password})
+        self.assertFalse(body['data']['persistent'])
+        self.assertIsNotNone(body['data']['expires_at'])
+
+    def test_10_persistent_must_be_boolean(self):
+        """A non-boolean Persistent value is a 400, not a silent truthy value."""
+        status, body = call('POST', '/auth/login', {
+            'Username': test_username, 'Password': test_password, 'Persistent': 'yes'})
+        self.assertEqual((status, body['error']), (400, 'Persistent must be a boolean'))
 
 
 if __name__ == '__main__':

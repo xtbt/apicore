@@ -3,5 +3,5 @@ from controllers.HealthController import HealthController
 
 
 def register_routes(router):
-    router.add_route('GET', '/healthcheck', HealthController,
+    router.add_route('GET', '/health', HealthController,
                      lambda c, p, body: (200, c.check()), public=True)

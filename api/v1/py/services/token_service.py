@@ -8,7 +8,7 @@ request objects, no status codes. core/Security.py holds the pure crypto.
 from datetime import datetime
 import time
 
-from core.date_utils import utc_from_timestamp, utc_now
+from utils.date_utils import utc_from_timestamp, utc_now
 from core.Exceptions import UnauthorizedError
 from core.Security import encode_token, generate_payload, hash_token, verify_token
 from models.UserToken import UserToken

@@ -163,12 +163,12 @@
       "_type": "request_group"
     },
     {
-      "_id": "req_healthcheck",
+      "_id": "req_health",
       "parentId": "fld_health",
       "modified": 0,
       "created": 0,
-      "url": "{{ _.base_url }}/healthcheck",
-      "name": "Healthcheck",
+      "url": "{{ _.base_url }}/health",
+      "name": "Health",
       "description": "200 con {\"status\":\"ok\"} si el servidor responde.",
       "method": "GET",
       "body": { "mimeType": "application/json", "text": "" },

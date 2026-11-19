@@ -41,11 +41,11 @@ def call(method, path, data=None, token=None):
 
 
 def wait_for_server(timeout=5):
-    """Poll /healthcheck until the server answers or timeout is reached."""
+    """Poll /health until the server answers or timeout is reached."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(f'{BASE_URL}/healthcheck', timeout=0.5):
+            with urllib.request.urlopen(f'{BASE_URL}/health', timeout=0.5):
                 return True
         except Exception:
             time.sleep(0.2)

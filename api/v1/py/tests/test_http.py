@@ -1,5 +1,5 @@
 """Protocol level tests: unknown route, wrong method, oversized body, keep-alive,
-request log format and /healthcheck payload.
+request log format and /health payload.
 
 Runs end to end against the real server (main.py) on a dedicated port. The
 server subprocess is always terminated, so no process or port is left open.
@@ -39,11 +39,11 @@ def call(method, path, data=None, token=None):
 
 
 def wait_for_server(timeout=5):
-    """Poll /healthcheck until the server answers or timeout is reached."""
+    """Poll /health until the server answers or timeout is reached."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(f'{BASE_URL}/healthcheck', timeout=0.5):
+            with urllib.request.urlopen(f'{BASE_URL}/health', timeout=0.5):
                 return True
         except Exception:
             time.sleep(0.2)
@@ -135,11 +135,11 @@ class TestHttpProtocol(unittest.TestCase):
         """HTTP/1.1 keeps the TCP connection open for the next request."""
         connection = http.client.HTTPConnection('localhost', PORT, timeout=5)
         try:
-            connection.request('GET', '/healthcheck')
+            connection.request('GET', '/health')
             first = connection.getresponse()
             first.read()
             socket_before = connection.sock
-            connection.request('GET', '/healthcheck')
+            connection.request('GET', '/health')
             second = connection.getresponse()
             second.read()
             self.assertEqual((first.status, second.status), (200, 200))
@@ -149,26 +149,26 @@ class TestHttpProtocol(unittest.TestCase):
 
     def test_5_request_log_format(self):
         """Each request logs "IP METHOD ROUTE STATUS DURATIONms"."""
-        call('GET', '/healthcheck')
-        line = wait_for_log(r'INFO 127\.0\.0\.1 GET /healthcheck 200 \d+ms')
+        call('GET', '/health')
+        line = wait_for_log(r'INFO 127\.0\.0\.1 GET /health 200 \d+ms')
         self.assertIsNotNone(line, 'log line not found: ' + repr(server_log[-5:]))
 
-    def test_6_healthcheck_hides_body(self):
+    def test_6_health_hides_body(self):
         """The health check no longer echoes the request body."""
-        status, body = call('GET', '/healthcheck')
+        status, body = call('GET', '/health')
         self.assertEqual(status, 200)
         self.assertNotIn('debug', body)
 
-    def test_7_healthcheck_is_a_route(self):
+    def test_7_health_is_a_route(self):
         """The health check is registered like any other route: wrong method gives 405."""
-        status, body = call('POST', '/healthcheck', {})
+        status, body = call('POST', '/health', {})
         self.assertEqual((status, body['error']), (405, 'Method not allowed'))
 
     def test_8_head_returns_headers_only(self):
         """HEAD answers with the GET status and headers but no body."""
         connection = http.client.HTTPConnection('localhost', PORT, timeout=5)
         try:
-            connection.request('HEAD', '/healthcheck')
+            connection.request('HEAD', '/health')
             response = connection.getresponse()
             self.assertEqual(response.status, 200)
             self.assertGreater(int(response.getheader('Content-Length')), 0)
@@ -207,7 +207,14 @@ class TestHttpProtocol(unittest.TestCase):
             connection.close()
 
         # The server is still responsive afterwards
-        self.assertEqual(call('GET', '/healthcheck')[0], 200)
+        self.assertEqual(call('GET', '/health')[0], 200)
+
+    def test_12_healthcheck_alias_removed(self):
+        """Only /health exists: the old /healthcheck alias is gone."""
+        status, body = call('GET', '/health')
+        self.assertEqual((status, body['status']), (200, 'ok'))
+        self.assertEqual(call('GET', '/healthcheck')[0], 404)
+        self.assertEqual(call('POST', '/health', {})[0], 405)
 
     def test_11_non_numeric_content_length(self):
         """A non-numeric Content-Length is a client error (400), not a 500."""

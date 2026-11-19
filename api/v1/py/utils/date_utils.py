@@ -1,6 +1,6 @@
 """Date helpers: one timezone for the whole API and UTC for storage.
 
-Layer: core (cross-cutting). Timestamps are stored in UTC (naive datetime,
+Layer: utils (cross-cutting). Timestamps are stored in UTC (naive datetime,
 because MySQL DATETIME has no offset) and rendered in APP_TIMEZONE, which is
 America/Tijuana by default. Never use datetime.now() directly: it would depend
 on the machine clock settings.
