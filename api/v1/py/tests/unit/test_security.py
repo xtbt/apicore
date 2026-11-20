@@ -66,9 +66,6 @@ class TestTokens(unittest.TestCase):
     def test_persistent_payload_has_no_exp(self):
         self.assertNotIn('exp', generate_payload(7, 'User', 60, 10, persistent=True))
 
-    def test_extra_claims(self):
-        self.assertEqual(generate_payload(1, 'User', 60, 10, extra_claims={'a': 1})['a'], 1)
-
     def test_encode_verify_roundtrip(self):
         token = encode_token(generate_payload(7, 'Admin', 60, 10))
         self.assertEqual(token.count('.'), 2)

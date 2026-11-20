@@ -29,9 +29,9 @@ logging.basicConfig(level=logging.INFO, handlers=[_log_handler])
 logging.getLogger('mysql.connector').setLevel(logging.WARNING)
 
 # Route table shared by all requests; routers are discovered from the package.
-# decode_token is injected here so the Router stays free of model imports: it
-# checks signature, expiration, revocation and that the user is Active.
-router = Router(authenticator=decode_token)
+# decode_token is injected into the auth middleware, which validates every token
+# before dispatch and keeps the Router focused on route resolution.
+router = Router()
 register_all(router)
 
 
@@ -47,14 +47,13 @@ def dispatch_request(request):
 
     # HEAD uses GET's route and headers, but HTTPHandler suppresses its body.
     route_method = 'GET' if method == 'HEAD' else method
-    request.body = request.read_body()
     return router.dispatch(
-        route_method, request.path, request.body, request.headers, request.query,
-        auth_context=(request.token, request.user),
+        route_method, request.path, request.read_body(), request.query,
+        token=request.token, user=request.user,
     )
 
 
-request_pipeline = default_pipeline(router, dispatch_request)
+request_pipeline = default_pipeline(router, dispatch_request, decode_token)
 
 
 class HTTPHandler(BaseHTTPRequestHandler):

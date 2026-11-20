@@ -21,15 +21,6 @@ class UserToken(BaseModel):
         finally:
             cur.close()
 
-    def get_by_hash(self, token_hash):
-        """Return the token row for a SHA-256 hash, or None."""
-        cur = self.db_conn.cursor(dictionary=True)
-        try:
-            cur.execute(f"SELECT * FROM {self.TABLE_NAME} WHERE TokenHash = %s", (token_hash,))
-            return cur.fetchone()
-        finally:
-            cur.close()
-
     def get_user_state(self, token_hash):
         """Return (UserStatus, UserRole) of the owner of a valid token hash, or None.
 

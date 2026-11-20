@@ -23,7 +23,6 @@ class RequestContext:
         # callable() -> str: reads the body on demand, so a middleware can reject
         # a request (401, 413) before the body is read
         self.read_body = read_body
-        self.body = ''
         self.token = None         # raw bearer token, set by auth_middleware
         self.user = None          # decoded token payload, set by auth_middleware
         self.extra_headers = {}   # response headers added by a middleware or endpoint

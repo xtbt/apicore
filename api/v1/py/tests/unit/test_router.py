@@ -4,7 +4,6 @@ No server and no database: a stub controller stands in for a real one.
 """
 import unittest
 
-from core.exceptions import UnauthorizedError
 from core.router import MAX_PAGE_SIZE, Router, json_object, positive_int
 
 
@@ -22,8 +21,8 @@ def ok_handler(controller, params, body):
     return 200, {'params': params, 'body': body}
 
 
-def build_router(authenticator=None):
-    router = Router(authenticator=authenticator)
+def build_router():
+    router = Router()
     router.add_route('GET', '/items', StubController, ok_handler, public=True)
     router.add_route('GET', '/items/{id}', StubController, ok_handler)
     router.add_route('PUT', '/items/{id}', StubController, ok_handler)
@@ -63,21 +62,23 @@ class TestPositiveInt(unittest.TestCase):
 
 
 class TestRouteMatching(unittest.TestCase):
-    def test_path_parameter(self):
-        router = build_router(lambda token: {'sub': 1})
-        status, payload = router.dispatch('GET', '/items/42', '', {'Authorization': 'Bearer t'})
+    def test_path_parameter_and_body(self):
+        router = build_router()
+        status, payload = router.dispatch(
+            'GET', '/items/42', '', token='raw-token', user={'sub': 1})
         self.assertEqual((status, payload['params']), (200, {'id': '42'}))
+        self.assertEqual(payload['body'], '')
 
     def test_unknown_path(self):
-        self.assertEqual(build_router().dispatch('GET', '/nope', '', {}),
+        self.assertEqual(build_router().dispatch('GET', '/nope', ''),
                          (404, {'error': 'Not found'}))
 
     def test_wrong_method(self):
-        self.assertEqual(build_router().dispatch('POST', '/items', '', {}),
+        self.assertEqual(build_router().dispatch('POST', '/items', ''),
                          (405, {'error': 'Method not allowed'}))
 
     def test_trailing_slash_does_not_match(self):
-        self.assertEqual(build_router().dispatch('GET', '/items/', '', {})[0], 404)
+        self.assertEqual(build_router().dispatch('GET', '/items/', '')[0], 404)
 
     def test_allowed_methods(self):
         router = build_router()
@@ -95,50 +96,8 @@ class TestRouteMatching(unittest.TestCase):
                 created.append(self)
 
         router.add_route('GET', '/x', Tracking, ok_handler, public=True)
-        router.dispatch('GET', '/x', '', {})
+        router.dispatch('GET', '/x', '')
         self.assertTrue(created[0].closed)
-
-
-class TestAuthentication(unittest.TestCase):
-    def test_missing_header(self):
-        with self.assertRaises(UnauthorizedError):
-            build_router(lambda token: {'sub': 1}).dispatch('GET', '/items/1', '', {})
-
-    def test_malformed_header(self):
-        for value in ('Token abc', 'Bearer', 'Bearer ', 'abc'):
-            with self.assertRaises(UnauthorizedError):
-                build_router(lambda token: {'sub': 1}).dispatch(
-                    'GET', '/items/1', '', {'Authorization': value})
-
-    def test_scheme_is_case_insensitive(self):
-        """RFC 7235: the auth scheme is case-insensitive."""
-        for scheme in ('Bearer', 'bearer', 'BEARER', 'BeArEr'):
-            status, payload = build_router(lambda token: {'sub': 1}).dispatch(
-                'GET', '/items/1', '', {'Authorization': f'{scheme} abc'})
-            self.assertEqual(status, 200)
-
-    def test_token_reaches_authenticator(self):
-        seen = []
-        build_router(lambda token: seen.append(token) or {'sub': 1}).dispatch(
-            'GET', '/items/1', '', {'Authorization': 'Bearer my-token'})
-        self.assertEqual(seen, ['my-token'])
-
-    def test_public_route_ignores_invalid_token(self):
-        """A public route still works when the token is invalid."""
-
-        def reject(token):
-            raise UnauthorizedError('Invalid token')
-
-        self.assertEqual(build_router(reject).dispatch('GET', '/items', '', {
-            'Authorization': 'Bearer garbage'})[0], 200)
-
-    def test_public_route_uses_valid_token(self):
-        """A public route exposes the payload when the token is valid."""
-        router = Router(authenticator=lambda token: {'sub': 9, 'role': 'God'})
-        router.add_route('GET', '/open', StubController,
-                         lambda c, p, b: (200, {'user': c.auth_user}), public=True)
-        status, payload = router.dispatch('GET', '/open', '', {'Authorization': 'Bearer t'})
-        self.assertEqual(payload['user'], {'sub': 9, 'role': 'God'})
 
 
 class TestPageSizeLimit(unittest.TestCase):

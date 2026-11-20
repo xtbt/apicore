@@ -69,7 +69,7 @@ def hash_token(token: str) -> str:
 
 
 def generate_payload(user_id: int, role: str, lifetime_minutes: int, min_remaining_minutes: int,
-                     persistent: bool = False, extra_claims: dict = None) -> dict:
+                     persistent: bool = False) -> dict:
     """Claims dict of a new token. lifetime_minutes is ignored when persistent=True
     (no `exp` claim); min_remaining_minutes is only a claim for the client."""
     now = int(time.time())
@@ -79,7 +79,6 @@ def generate_payload(user_id: int, role: str, lifetime_minutes: int, min_remaini
     }
     if not persistent:
         payload['exp'] = now + lifetime_minutes * 60
-    payload.update(extra_claims or {})
     return payload
 
 

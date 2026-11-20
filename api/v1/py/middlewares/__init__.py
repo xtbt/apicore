@@ -9,9 +9,9 @@ from middlewares.error_middleware import ErrorMiddleware
 from middlewares.logging_middleware import LoggingMiddleware
 
 
-def default_pipeline(router, endpoint):
+def default_pipeline(router, endpoint, authenticator):
     """Build the standard pipeline: error -> logging -> auth -> endpoint."""
     return build_pipeline(
-        [ErrorMiddleware(), LoggingMiddleware(), AuthMiddleware(router)],
+        [ErrorMiddleware(), LoggingMiddleware(), AuthMiddleware(router, authenticator)],
         endpoint,
     )

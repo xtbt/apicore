@@ -6,7 +6,6 @@ revoking a token means deleting its row). It never knows about HTTP: no
 request objects, no status codes. core/security.py holds the pure crypto.
 """
 from datetime import datetime
-import time
 
 from utils.date_utils import utc_from_timestamp, utc_now
 from core.exceptions import UnauthorizedError
@@ -18,7 +17,7 @@ PERSISTENT_EXPIRATION = datetime(9999, 12, 31, 23, 59, 59)
 
 
 def generate_token(user_id, role, lifetime_minutes, min_remaining_minutes,
-                   persistent=False, extra_claims=None, token_model=None):
+                   persistent=False, token_model=None):
     """Create a signed JWT and persist its hash in `users_tokens`.
 
     lifetime_minutes is ignored when persistent=True (no `exp` claim).
@@ -26,11 +25,9 @@ def generate_token(user_id, role, lifetime_minutes, min_remaining_minutes,
     An existing `token_model` is reused (and left open); otherwise a new one
     is created and closed here.
     """
-    payload = generate_payload(user_id, role, lifetime_minutes, min_remaining_minutes,
-                               persistent, extra_claims)
+    payload = generate_payload(user_id, role, lifetime_minutes, min_remaining_minutes, persistent)
     token = encode_token(payload)
 
-    now = int(time.time())
     expiration = PERSISTENT_EXPIRATION if persistent else utc_from_timestamp(payload['exp'])
     model = token_model or UserToken()
     try:

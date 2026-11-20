@@ -18,24 +18,9 @@ def utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def local_now():
-    """Current time as an aware datetime in APP_TIMEZONE."""
-    return datetime.now(LOCAL_TZ)
-
-
 def utc_from_timestamp(epoch):
     """Epoch seconds -> naive UTC datetime (for DATETIME columns)."""
     return datetime.fromtimestamp(epoch, timezone.utc).replace(tzinfo=None)
-
-
-def to_local(value):
-    """Naive UTC datetime (from the database) -> aware datetime in APP_TIMEZONE."""
-    return value.replace(tzinfo=timezone.utc).astimezone(LOCAL_TZ)
-
-
-def isoformat_local(value):
-    """ISO 8601 string in APP_TIMEZONE, e.g. 2026-11-14T15:04:05-08:00."""
-    return to_local(value).isoformat()
 
 
 def isoformat_from_timestamp(epoch):

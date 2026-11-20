@@ -6,8 +6,6 @@ it must never contain business logic, SQL or HTTP server code.
 import json
 import re
 
-from core.exceptions import UnauthorizedError
-
 MAX_PAGE_SIZE = 100  # upper bound for ?size= on list endpoints
 
 
@@ -37,12 +35,9 @@ def positive_int(query, name):
 
 
 class Router:
-    def __init__(self, authenticator=None):
+    def __init__(self):
         # Each route: (method, compiled regex, handler, controller class, public)
         self.routes = []
-        # authenticator(token) -> payload of a verified, non-revoked, Active user;
-        # injected from main.py, so this module has no model dependency
-        self.authenticator = authenticator
 
     def add_route(self, method, pattern, controller_class, handler, public=False):
         """Register a route.
@@ -109,20 +104,6 @@ class Router:
         self.add_route('DELETE', item, controller_class, delete,
                        public or 'DELETE' in public_methods)
 
-    def _authenticate(self, headers):
-        """Validate the bearer token of a protected route. Returns (raw_token, payload).
-
-        The scheme is compared case-insensitively, as RFC 7235 defines it.
-        """
-        scheme, _, token = headers.get('Authorization', '').partition(' ')
-        if scheme.lower() != 'bearer' or not token:
-            raise UnauthorizedError('Missing or malformed Authorization header')
-        return token, self.authenticator(token)
-
-    def authenticate(self, headers):
-        """Validate a bearer token for middleware use; returns (raw_token, payload)."""
-        return self._authenticate(headers)
-
     def route_public(self, method, path):
         """Return route visibility, or None if this method/path has no route."""
         for route_method, regex, _handler, _controller, public in self.routes:
@@ -134,11 +115,12 @@ class Router:
         """HTTP methods registered for `path` (empty list when no pattern matches)."""
         return [method for method, regex, _h, _c, _p in self.routes if regex.match(path)]
 
-    def dispatch(self, method, path, body, headers, query=None, auth_context=None):
-        """Run the matching route. Returns (status, payload).
+    def dispatch(self, method, path, body, query=None, token=None, user=None):
+        """Run the matching route with auth context supplied by middleware.
 
-        404 if no pattern matches the path; 405 if the path exists but not for
-        that method. A controller (and its DB connection) is created per request.
+        Returns (status, payload). 404 if no pattern matches the path; 405 if the
+        path exists but not for that method. A controller (and its DB connection)
+        is created per request.
         """
         path_found = False
         for route_method, regex, handler, controller_class, public in self.routes:
@@ -148,21 +130,9 @@ class Router:
             path_found = True
             if route_method != method:
                 continue
-            if auth_context is not None:
-                token, payload = auth_context
-            else:
-                token = payload = None
-                if not public:
-                    token, payload = self._authenticate(headers)
-                elif headers.get('Authorization'):
-                    # Public route accepts a valid token, but does not require one
-                    try:
-                        token, payload = self._authenticate(headers)
-                    except UnauthorizedError:
-                        pass
             controller = controller_class()
             controller.auth_token = token
-            controller.auth_user = payload
+            controller.auth_user = user
             controller.query = query
             try:
                 return handler(controller, match.groupdict(), body)
