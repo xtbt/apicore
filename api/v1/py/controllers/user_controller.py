@@ -9,11 +9,8 @@ from schemas import user_schema
 
 class UserController(BaseController):
     MODEL_CLASS = User
+    SCHEMA = user_schema
     PRIVILEGED_ROLES = ('Admin', 'God')  # the only roles allowed to assign UserRole
-
-    def validate(self, data, partial=False):
-        """Field rules live in schemas/user_schema.py."""
-        user_schema.validate(data, partial)
 
     def _is_privileged(self):
         """The caller holds Admin or God (the roles that manage other users)."""
@@ -95,7 +92,3 @@ class UserController(BaseController):
         else:
             data.pop('Password', None)
         return data
-
-    def delete(self, record_id):
-        """Delete the user (token revocation happens in before_delete)."""
-        return super().delete(record_id)

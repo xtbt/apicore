@@ -1,12 +1,13 @@
 """Base controller: generic CRUD flow shared by every entity.
 
-Layer: controllers. Entity controllers only set MODEL_CLASS and override
-validate() / prepare(). It must never contain SQL.
+Layer: controllers. Entity controllers set MODEL_CLASS and SCHEMA, then override
+prepare() or business hooks only when needed. It must never contain SQL.
 """
 
 
 class BaseController:
     MODEL_CLASS = None  # Model class of the entity (set by subclasses)
+    SCHEMA = None       # Schema module exposing validate(data, partial=False)
     auth_token = None   # Raw bearer token of the current request (set by the Router on protected routes)
     auth_user = None    # Decoded payload of that token (None on public routes)
     query = None        # Query-string parameters of the current request (?page=1&size=10)
@@ -21,11 +22,13 @@ class BaseController:
             self.model.close()
 
     def validate(self, data, partial=False):
-        """Hook for entity rules. Raise ValueError when `data` is invalid.
+        """Delegate field validation to SCHEMA, if the entity declares one.
 
-        partial=True (PATCH): only the fields present in `data` are checked.
-        Entity controllers delegate to their schema in schemas/.
+        A schema module exposes validate(data, partial=False). Subclasses may
+        override this hook when validation also needs controller-level rules.
         """
+        if self.SCHEMA is not None:
+            self.SCHEMA.validate(data, partial)
 
     def prepare(self, data, record_id=None):
         """Hook run after validate(): transform `data` before it is stored (record_id is None on create)."""
