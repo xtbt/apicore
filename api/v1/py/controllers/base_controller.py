@@ -39,6 +39,14 @@ class BaseController:
         changes data.
         """
 
+    def before_delete(self, record_id):
+        """Hook run after authorize() and before the row is deleted.
+
+        Use it for side effects that must happen only when the delete is
+        allowed (e.g. revoking the deleted user's tokens). A raised exception
+        aborts the delete.
+        """
+
     def create(self, data):
         self.validate(data)
         return self.model.create(self.prepare(data))
@@ -50,16 +58,20 @@ class BaseController:
         return self.model.get_by_id(record_id)
 
     def update(self, record_id, data):
-        self.authorize(record_id, 'update', data)
-        self.validate(data)
-        return self.model.update(record_id, self.prepare(data, record_id))
+        """Full update (PUT): every field rule is enforced."""
+        return self._write(record_id, data, partial=False)
 
     def patch(self, record_id, data):
-        """Partial update: only the fields sent are validated and written."""
+        """Partial update (PATCH): only the fields sent are validated and written."""
+        return self._write(record_id, data, partial=True)
+
+    def _write(self, record_id, data, partial):
+        """Shared PUT/PATCH flow: authorize, validate, prepare and persist."""
         self.authorize(record_id, 'update', data)
-        self.validate(data, partial=True)
+        self.validate(data, partial)
         return self.model.update(record_id, self.prepare(data, record_id))
 
     def delete(self, record_id):
         self.authorize(record_id, 'delete')
+        self.before_delete(record_id)
         return self.model.delete(record_id)

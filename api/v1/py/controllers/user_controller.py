@@ -15,17 +15,23 @@ class UserController(BaseController):
         """Field rules live in schemas/user_schema.py."""
         user_schema.validate(data, partial)
 
+    def _is_privileged(self):
+        """The caller holds Admin or God (the roles that manage other users)."""
+        return (self.auth_user or {}).get('role') in self.PRIVILEGED_ROLES
+
+    def _owns_record(self, record_id):
+        """The caller's token `sub` matches the record id being accessed."""
+        return str(record_id) == str((self.auth_user or {}).get('sub'))
+
     def get_all(self, page=None, size=None):
         """The user list is restricted to Admin and God."""
-        if (self.auth_user or {}).get('role') not in self.PRIVILEGED_ROLES:
+        if not self._is_privileged():
             raise ForbiddenError('Only Admin or God can list users')
         return super().get_all(page, size)
 
     def get_by_id(self, record_id):
         """A user may read its own account; any other account is Admin/God only."""
-        caller = self.auth_user or {}
-        if (caller.get('role') not in self.PRIVILEGED_ROLES
-                and str(record_id) != str(caller.get('sub'))):
+        if not self._is_privileged() and not self._owns_record(record_id):
             raise ForbiddenError('You can only read your own account')
         return super().get_by_id(record_id)
 
@@ -37,13 +43,12 @@ class UserController(BaseController):
         - An Admin may not touch a God account.
         - The last God account cannot be deleted nor lose its role.
         """
-        caller = self.auth_user or {}
-        caller_role = caller.get('role')
-        if caller_role not in self.PRIVILEGED_ROLES and str(record_id) != str(caller.get('sub')):
+        if not self._is_privileged() and not self._owns_record(record_id):
             raise ForbiddenError('You can only modify your own account')
         target = self.model.get_by_id(record_id)
         if target is None:
             return  # the model reports 404
+        caller_role = (self.auth_user or {}).get('role')
         if caller_role == 'Admin' and target['UserRole'] == 'God':
             raise ForbiddenError('Only God can modify a God account')
         if target['UserRole'] != 'God' or self.model.count_by_role('God') > 1:
@@ -53,6 +58,14 @@ class UserController(BaseController):
             raise ForbiddenError('The last God account cannot be deleted')
         if (data or {}).get('UserRole', 'God') != 'God':
             raise ForbiddenError('The last God account cannot lose its role')
+
+    def before_delete(self, record_id):
+        """Revoke every token of the user being deleted."""
+        tokens = UserToken()
+        try:
+            tokens.delete_by_user(record_id)
+        finally:
+            tokens.close()
 
     def prepare(self, data, record_id=None):
         """Reject duplicated usernames, enforce role permissions and store the password hashed.
@@ -68,7 +81,7 @@ class UserController(BaseController):
         role = data.get('UserRole')
         caller = (self.auth_user or {}).get('role')
         if role is not None and role != 'User':
-            if caller not in self.PRIVILEGED_ROLES:
+            if not self._is_privileged():
                 raise ForbiddenError('Only Admin or God can assign roles')
             if role == 'God' and caller != 'God':
                 raise ForbiddenError('Only God can assign the God role')
@@ -84,14 +97,5 @@ class UserController(BaseController):
         return data
 
     def delete(self, record_id):
-        """Delete the user and revoke all of its tokens.
-
-        authorize() runs once here, before revoking: a refused delete changes nothing.
-        """
-        self.authorize(record_id, 'delete')
-        tokens = UserToken()
-        try:
-            tokens.delete_by_user(record_id)
-        finally:
-            tokens.close()
-        return self.model.delete(record_id)
+        """Delete the user (token revocation happens in before_delete)."""
+        return super().delete(record_id)
