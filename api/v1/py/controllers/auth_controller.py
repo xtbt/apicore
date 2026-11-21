@@ -46,14 +46,14 @@ class AuthController(BaseController):
         tokens = UserToken()
         try:
             tokens.delete_expired()  # housekeeping: drop tokens whose expiration passed
-            token = generate_token(
+            token, payload = generate_token(
                 user['UserId'], user['UserRole'],
                 settings.TOKEN_LIFETIME_MINUTES, settings.TOKEN_MIN_REMAINING_MINUTES,
                 persistent=persistent, token_model=tokens
             )
         finally:
             tokens.close()
-        return build_token_response(token)
+        return build_token_response(token, payload)
 
     def logout(self):
         """Revoke the token used in the current request."""

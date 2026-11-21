@@ -23,7 +23,8 @@ def generate_token(user_id, role, lifetime_minutes, min_remaining_minutes,
     lifetime_minutes is ignored when persistent=True (no `exp` claim).
     min_remaining_minutes is only a claim: the client decides when to renew.
     An existing `token_model` is reused (and left open); otherwise a new one
-    is created and closed here.
+    is created and closed here. Returns the signed token and its exact payload
+    so the response formatter need not decode the token again.
     """
     payload = generate_payload(user_id, role, lifetime_minutes, min_remaining_minutes, persistent)
     token = encode_token(payload)
@@ -40,7 +41,7 @@ def generate_token(user_id, role, lifetime_minutes, min_remaining_minutes,
     finally:
         if token_model is None:
             model.close()
-    return token
+    return token, payload
 
 
 def decode_token(token):

@@ -4,6 +4,7 @@ No server and no database: pure functions only.
 """
 import time
 import unittest
+from unittest.mock import patch
 
 from core.exceptions import UnauthorizedError
 from core.security import (base64url_decode, base64url_encode, build_token_response,
@@ -113,6 +114,14 @@ class TestTokens(unittest.TestCase):
         self.assertEqual(response['token'], token)
         self.assertEqual(response['token_type'], 'Bearer')
         self.assertEqual(response['min_remaining_minutes'], 10)
+        self.assertIsNotNone(response['expires_at'])
+
+    def test_build_token_response_uses_provided_payload_without_decoding(self):
+        token = 'header.payload.signature'
+        payload = {'exp': 1_900_000_000, 'min_remaining_minutes': 10}
+        with patch('core.security.base64url_decode', side_effect=AssertionError('must not decode')):
+            response = build_token_response(token, payload)
+        self.assertEqual(response['token'], token)
         self.assertIsNotNone(response['expires_at'])
 
     def test_build_token_response_persistent(self):
