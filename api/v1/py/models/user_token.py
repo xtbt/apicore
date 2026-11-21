@@ -13,13 +13,11 @@ class UserToken(BaseModel):
 
     def _delete_where(self, column, value):
         """Delete rows matching `column` = `value`. Returns the number of deleted rows."""
-        cur = self.db_conn.cursor()
-        try:
+        with self._cursor() as cur:
             cur.execute(f"DELETE FROM {self.TABLE_NAME} WHERE {column} = %s", (value,))
-            self.db_conn.commit()
-            return cur.rowcount
-        finally:
-            cur.close()
+            deleted = cur.rowcount
+        self.db_conn.commit()
+        return deleted
 
     def get_user_state(self, token_hash):
         """Return (UserStatus, UserRole) of the owner of a valid token hash, or None.
@@ -29,8 +27,7 @@ class UserToken(BaseModel):
         The role is read from the database on every request, so a role change
         applies immediately instead of waiting for the token to expire.
         """
-        cur = self.db_conn.cursor()
-        try:
+        with self._cursor() as cur:
             cur.execute(
                 f"SELECT u.UserStatus, u.UserRole FROM {self.TABLE_NAME} t "
                 "JOIN users u ON u.UserId = t.UserId "
@@ -38,8 +35,6 @@ class UserToken(BaseModel):
                 (token_hash,)
             )
             return cur.fetchone()
-        finally:
-            cur.close()
 
     def delete_by_hash(self, token_hash):
         """Revoke one token."""
@@ -50,13 +45,11 @@ class UserToken(BaseModel):
 
         Persistent tokens hold a far-future date (year 9999), so they survive this.
         """
-        cur = self.db_conn.cursor()
-        try:
+        with self._cursor() as cur:
             cur.execute(f"DELETE FROM {self.TABLE_NAME} WHERE TokenExpiration < UTC_TIMESTAMP()")
-            self.db_conn.commit()
-            return cur.rowcount
-        finally:
-            cur.close()
+            deleted = cur.rowcount
+        self.db_conn.commit()
+        return deleted
 
     def delete_by_user(self, user_id):
         """Revoke every token of a user."""

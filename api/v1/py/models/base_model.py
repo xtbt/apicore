@@ -3,6 +3,8 @@
 Layer: models. Entity models only declare TABLE_NAME, ID_COLUMN and COLUMNS
 (plus any query that is specific to that entity). It must never handle HTTP.
 """
+from contextlib import closing
+
 from mysql.connector import IntegrityError
 
 from core.database import Database
@@ -29,6 +31,10 @@ class BaseModel:
         """Release the database connection."""
         self.database.close()
 
+    def _cursor(self, dictionary=False):
+        """Return a cursor context manager that always closes the cursor."""
+        return closing(self.db_conn.cursor(dictionary=dictionary))
+
     def _filter(self, data):
         """Return only the writable columns of `data` (primary key removed).
 
@@ -49,18 +55,17 @@ class BaseModel:
         data = self._filter(data)
         columns = ', '.join(data.keys())
         placeholders = ', '.join(['%s'] * len(data))
-        cur = self.db_conn.cursor(dictionary=True)
         try:
-            cur.execute(
-                f"INSERT INTO {self.TABLE_NAME} ({columns}) VALUES ({placeholders})",
-                tuple(data.values())
-            )
+            with self._cursor(dictionary=True) as cur:
+                cur.execute(
+                    f"INSERT INTO {self.TABLE_NAME} ({columns}) VALUES ({placeholders})",
+                    tuple(data.values())
+                )
+                record_id = cur.lastrowid
             self.db_conn.commit()
-            return cur.lastrowid
+            return record_id
         except IntegrityError:
             raise ValueError('Record already exists')  # UNIQUE key violated (also under concurrent requests)
-        finally:
-            cur.close()
 
     def _public(self, row):
         """Remove HIDDEN_COLUMNS from a row (None passes through)."""
@@ -75,24 +80,20 @@ class BaseModel:
         if size:
             sql += ' LIMIT %s OFFSET %s'
             params = (size, (max(page or 1, 1) - 1) * size)
-        cur = self.db_conn.cursor(dictionary=True)
-        try:
+        with self._cursor(dictionary=True) as cur:
             cur.execute(sql, params)
-            return [self._public(row) for row in cur.fetchall()]
-        finally:
-            cur.close()
+            rows = cur.fetchall()
+        return [self._public(row) for row in rows]
 
     def get_by_id(self, record_id):
         """Return one record, or None when it does not exist."""
-        cur = self.db_conn.cursor(dictionary=True)
-        try:
+        with self._cursor(dictionary=True) as cur:
             cur.execute(
                 f"SELECT * FROM {self.TABLE_NAME} WHERE {self.ID_COLUMN} = %s",
                 (record_id,)
             )
-            return self._public(cur.fetchone())
-        finally:
-            cur.close()
+            row = cur.fetchone()
+        return self._public(row)
 
     def update(self, record_id, data):
         """Update a record by id.
@@ -102,40 +103,36 @@ class BaseModel:
         """
         data = self._filter(data)
         columns = list(data.keys())
-        cur = self.db_conn.cursor(dictionary=True)
         try:
-            # Read the current values (as a dict) of only the columns being modified
-            cur.execute(
-                f"SELECT {', '.join(columns)} FROM {self.TABLE_NAME} WHERE {self.ID_COLUMN} = %s",
-                (record_id,)
-            )
-            current = cur.fetchone()
-            if current is None:
-                return self.NOT_FOUND
-            if current == data:
-                return self.UNCHANGED
+            with self._cursor(dictionary=True) as cur:
+                # Read the current values (as a dict) of only the columns being modified
+                cur.execute(
+                    f"SELECT {', '.join(columns)} FROM {self.TABLE_NAME} WHERE {self.ID_COLUMN} = %s",
+                    (record_id,)
+                )
+                current = cur.fetchone()
+                if current is None:
+                    return self.NOT_FOUND
+                if current == data:
+                    return self.UNCHANGED
 
-            set_clause = ', '.join(f"{key} = %s" for key in columns)
-            cur.execute(
-                f"UPDATE {self.TABLE_NAME} SET {set_clause} WHERE {self.ID_COLUMN} = %s",
-                tuple(data.values()) + (record_id,)
-            )
+                set_clause = ', '.join(f"{key} = %s" for key in columns)
+                cur.execute(
+                    f"UPDATE {self.TABLE_NAME} SET {set_clause} WHERE {self.ID_COLUMN} = %s",
+                    tuple(data.values()) + (record_id,)
+                )
             self.db_conn.commit()
             return self.UPDATED
         except IntegrityError:
             raise ValueError('Record already exists')
-        finally:
-            cur.close()
 
     def delete(self, record_id):
         """Delete a record by id. Returns True if a row was deleted, False if the id does not exist."""
-        cur = self.db_conn.cursor(dictionary=True)
-        try:
+        with self._cursor(dictionary=True) as cur:
             cur.execute(
                 f"DELETE FROM {self.TABLE_NAME} WHERE {self.ID_COLUMN} = %s",
                 (record_id,)
             )
-            self.db_conn.commit()
-            return cur.rowcount > 0
-        finally:
-            cur.close()
+            deleted = cur.rowcount > 0
+        self.db_conn.commit()
+        return deleted

@@ -10,18 +10,12 @@ class User(BaseModel):
 
     def get_by_username(self, username):
         """Return the full row (including the password hash, for login) or None."""
-        cur = self.db_conn.cursor(dictionary=True)
-        try:
+        with self._cursor(dictionary=True) as cur:
             cur.execute(f"SELECT * FROM {self.TABLE_NAME} WHERE Username = %s", (username,))
             return cur.fetchone()
-        finally:
-            cur.close()
 
     def count_by_role(self, role):
         """Number of users holding `role` (used to protect the last God account)."""
-        cur = self.db_conn.cursor()
-        try:
+        with self._cursor() as cur:
             cur.execute(f"SELECT COUNT(*) FROM {self.TABLE_NAME} WHERE UserRole = %s", (role,))
             return cur.fetchone()[0]
-        finally:
-            cur.close()
