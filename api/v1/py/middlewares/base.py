@@ -4,10 +4,10 @@ Layer: middlewares (cross-cutting). A middleware wraps the next handler, so the
 pipeline is read outermost to innermost: error -> logging -> auth -> endpoint.
 Every middleware and the endpoint share one signature:
 
-    handler(request) -> (status, payload)
+    handler(request) -> Response
 
-Keeping the response as a (status, payload) pair means no middleware needs to
-know about sockets or HTTP: only main.py writes the response.
+Response (core/http.py) only carries data, so no middleware needs to know about
+sockets: only server.py writes the response.
 """
 
 
@@ -25,14 +25,13 @@ class RequestContext:
         self.read_body = read_body
         self.token = None         # raw bearer token, set by auth_middleware
         self.user = None          # decoded token payload, set by auth_middleware
-        self.extra_headers = {}   # response headers added by a middleware or endpoint
 
 
 class Middleware:
     """Base contract: subclasses override handle() and call call_next(request)."""
 
     def handle(self, request, call_next):
-        """Process the request and delegate to the next layer. Returns (status, payload)."""
+        """Process the request and delegate to the next layer. Returns a Response."""
         return call_next(request)
 
 

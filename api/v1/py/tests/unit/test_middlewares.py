@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from core.exceptions import UnauthorizedError
+from core.http import Response
 from core.router import Router
 from middlewares.auth_middleware import AuthMiddleware
 from middlewares.base import RequestContext
@@ -38,9 +39,9 @@ class TestLoggingMiddleware(unittest.TestCase):
 
         handler = lambda req: logging_middleware.handle(req, endpoint)
         with patch('middlewares.logging_middleware.logging.info') as log_info:
-            status, payload = pipeline(request, handler)
+            response = pipeline(request, handler)
 
-        self.assertEqual((status, payload), (400, {'error': 'invalid input'}))
+        self.assertEqual((response.status, response.payload), (400, {'error': 'invalid input'}))
         self.assertEqual(log_info.call_args.args[4], 400)
 
     def test_unexpected_exception_logs_500_and_propagates(self):
@@ -66,7 +67,7 @@ class TestAuthMiddleware(unittest.TestCase):
     @staticmethod
     def send(middleware, method, path, headers):
         request = RequestContext(method, path, {}, headers, '127.0.0.1', lambda: '')
-        middleware.handle(request, lambda req: (200, None))
+        middleware.handle(request, lambda req: Response(200))
         return request
 
     def test_protected_without_header_is_401(self):

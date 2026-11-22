@@ -3,6 +3,7 @@ import sys
 from http.server import ThreadingHTTPServer
 
 from core.exceptions import AppError
+from core.http import Response
 from core.logger import configure_logging
 from core.router import Router
 from core.settings import settings
@@ -27,15 +28,16 @@ def dispatch_request(request):
         allowed = router.allowed_methods(request.path)
         if not allowed:
             raise AppError('Not found', 404)
-        request.extra_headers['Allow'] = ', '.join(sorted(set(allowed) | {'HEAD', 'OPTIONS'}))
-        return 204, None
+        allow = ', '.join(sorted(set(allowed) | {'HEAD', 'OPTIONS'}))
+        return Response(204, headers={'Allow': allow})
 
     # HEAD uses GET's route and headers, but HTTPHandler suppresses its body.
     route_method = 'GET' if method == 'HEAD' else method
-    return router.dispatch(
+    status, payload = router.dispatch(
         route_method, request.path, request.read_body(), request.query,
         token=request.token, user=request.user,
     )
+    return Response(status, payload)
 
 
 request_pipeline = default_pipeline(router, dispatch_request, decode_token)

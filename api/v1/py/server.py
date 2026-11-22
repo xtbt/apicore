@@ -77,9 +77,9 @@ class HTTPHandler(BaseHTTPRequestHandler):
         query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
         request = RequestContext(
             method, uri, query, self.headers, self.client_address[0], self.read_body)
-        status, payload = request_pipeline(request)
-        self.send_json_response(payload, status, send_body=method != 'HEAD',
-                                extra_headers=request.extra_headers)
+        response = request_pipeline(request)
+        self.send_json_response(response.payload, response.status, send_body=method != 'HEAD',
+                                extra_headers=response.headers)
 
     def log_message(self, format, *args):
         pass  # the default per-request stderr log is replaced by the structured one above

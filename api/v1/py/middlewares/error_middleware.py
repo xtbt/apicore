@@ -1,4 +1,4 @@
-"""Translate exceptions into (status, payload) pairs, the pipeline's response shape.
+"""Translate exceptions into Response objects, the pipeline's response shape.
 
 Layer: middlewares (cross-cutting). Outermost layer: nothing above it can fail,
 so every error leaves the pipeline as a uniform JSON body.
@@ -6,6 +6,7 @@ so every error leaves the pipeline as a uniform JSON body.
 import logging
 
 from core.exceptions import AppError
+from core.http import Response
 from middlewares.base import Middleware
 
 
@@ -19,9 +20,9 @@ class ErrorMiddleware(Middleware):
         try:
             return call_next(request)
         except AppError as error:
-            return error.status_code, {'error': str(error)}
+            return Response.error(error.status_code, str(error))
         except ValueError as error:
-            return 400, {'error': str(error)}
+            return Response.error(400, str(error))
         except Exception:
             logging.exception('Unhandled error on %s %s', request.method, request.path)
-            return 500, {'error': 'Internal server error'}
+            return Response.error(500, 'Internal server error')

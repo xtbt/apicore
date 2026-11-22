@@ -16,7 +16,7 @@ class LoggingMiddleware(Middleware):
     def handle(self, request, call_next):
         start = time.perf_counter()
         try:
-            status, payload = call_next(request)
+            response = call_next(request)
         except AppError as error:
             self._log(request, error.status_code, start)
             raise
@@ -26,8 +26,8 @@ class LoggingMiddleware(Middleware):
         except Exception:
             self._log(request, 500, start)
             raise
-        self._log(request, status, start)
-        return status, payload
+        self._log(request, response.status, start)
+        return response
 
     @staticmethod
     def _log(request, status, start):
