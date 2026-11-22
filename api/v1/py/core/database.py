@@ -55,10 +55,6 @@ class Database:
             raise
         return self.connection
 
-    def get_connection(self):
-        """Alias kept for readability at call sites (`db.get_connection()`)."""
-        return self.connect()
-
     def close(self):
         """Return the connection to the pool and release its slot."""
         if self.connection is not None:

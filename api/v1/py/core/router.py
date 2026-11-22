@@ -82,7 +82,9 @@ class Router:
                 return not_found
             if result == c.model.UNCHANGED:
                 return 200, {'status': 'ok', 'message': 'No changes to apply'}
-            return 200, {'status': 'ok', 'message': f'{label} updated'}
+            if result == c.model.UPDATED:
+                return 200, {'status': 'ok', 'message': f'{label} updated'}
+            raise ValueError(f'Unexpected update result: {result!r}')
 
         def delete(c, p, body):
             if c.delete(p['id']):

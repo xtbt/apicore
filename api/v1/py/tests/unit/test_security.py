@@ -109,14 +109,15 @@ class TestTokens(unittest.TestCase):
         self.assertEqual(len(hash_token('abc')), 64)
 
     def test_build_token_response(self):
-        token = encode_token(generate_payload(7, 'User', 60, 10))
-        response = build_token_response(token)
+        payload = generate_payload(7, 'User', 60, 10)
+        token = encode_token(payload)
+        response = build_token_response(token, payload)
         self.assertEqual(response['token'], token)
         self.assertEqual(response['token_type'], 'Bearer')
         self.assertEqual(response['min_remaining_minutes'], 10)
         self.assertIsNotNone(response['expires_at'])
 
-    def test_build_token_response_uses_provided_payload_without_decoding(self):
+    def test_build_token_response_does_not_decode_the_token(self):
         token = 'header.payload.signature'
         payload = {'exp': 1_900_000_000, 'min_remaining_minutes': 10}
         with patch('core.security.base64url_decode', side_effect=AssertionError('must not decode')):
@@ -125,8 +126,8 @@ class TestTokens(unittest.TestCase):
         self.assertIsNotNone(response['expires_at'])
 
     def test_build_token_response_persistent(self):
-        token = encode_token(generate_payload(7, 'User', 60, 10, persistent=True))
-        self.assertIsNone(build_token_response(token)['expires_at'])
+        payload = generate_payload(7, 'User', 60, 10, persistent=True)
+        self.assertIsNone(build_token_response(encode_token(payload), payload)['expires_at'])
 
 
 if __name__ == '__main__':

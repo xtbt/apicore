@@ -1,6 +1,7 @@
 """Application errors that carry their own HTTP status code.
 
-Layer: core (cross-cutting). Raised by any layer, translated to JSON by main.py.
+Layer: core (cross-cutting). Raised by any layer, translated to JSON by
+middlewares/error_middleware.py.
 """
 
 

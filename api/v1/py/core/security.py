@@ -111,14 +111,12 @@ def verify_token(token: str) -> dict:
     return payload
 
 
-def build_token_response(token: str, payload: dict = None) -> dict:
-    """Format a login response from token data already available at generation.
+def build_token_response(token: str, payload: dict) -> dict:
+    """Format a login response from the payload already available at generation.
 
-    The optional payload keeps compatibility for existing callers while callers
-    that generated the token can pass it and avoid parsing the JWT a second time.
+    The caller always holds the payload (generate_token returns it), so the JWT
+    is never parsed a second time.
     """
-    if payload is None:
-        payload = json.loads(base64url_decode(token.split('.')[1]))
     expires_at = None
     if 'exp' in payload:
         expires_at = isoformat_from_timestamp(payload['exp'])

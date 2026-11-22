@@ -25,7 +25,7 @@ class BaseModel:
     def __init__(self):
         # One pooled connection per model instance (connections are not shared between threads)
         self.database = Database()
-        self.db_conn = self.database.get_connection()
+        self.db_conn = self.database.connect()
 
     def close(self):
         """Release the database connection."""
