@@ -50,9 +50,10 @@ class Database:
         self._slot = True
         try:
             self.connection = _get_pool().get_connection()
-        except Exception:
+        except Exception as error:
             self.close()
-            raise
+            # The database is unreachable: answer 503 instead of a generic 500
+            raise ServiceUnavailableError('Database unavailable') from error
         return self.connection
 
     def close(self):
