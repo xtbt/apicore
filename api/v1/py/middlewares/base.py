@@ -6,25 +6,9 @@ Every middleware and the endpoint share one signature:
 
     handler(request) -> Response
 
-Response (core/http.py) only carries data, so no middleware needs to know about
-sockets: only server.py writes the response.
+Request and Response (core/http.py) only carry data, so no middleware needs to
+know about sockets: only server.py reads the request and writes the response.
 """
-
-
-class RequestContext:
-    """Everything one request carries while it crosses the pipeline."""
-
-    def __init__(self, method, path, query, headers, client_ip, read_body):
-        self.method = method
-        self.path = path
-        self.query = query
-        self.headers = headers
-        self.client_ip = client_ip
-        # callable() -> str: reads the body on demand, so a middleware can reject
-        # a request (401, 413) before the body is read
-        self.read_body = read_body
-        self.token = None         # raw bearer token, set by auth_middleware
-        self.user = None          # decoded token payload, set by auth_middleware
 
 
 class Middleware:

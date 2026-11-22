@@ -10,7 +10,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler
 
 from core.exceptions import AppError, PayloadTooLargeError
-from middlewares.base import RequestContext
+from core.http import Request
 
 MAX_BODY_BYTES = 1024 * 1024  # 1 MB cap for request bodies
 
@@ -77,11 +77,11 @@ class HTTPHandler(BaseHTTPRequestHandler):
             raise AppError('Request body must be UTF-8', 400)
 
     def dispatch(self, method):
-        """Build the RequestContext for one request and run the shared pipeline."""
+        """Build the Request for one request and run the shared pipeline."""
         parsed = urllib.parse.urlparse(self.path)
         uri = parsed.path
         query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
-        request = RequestContext(
+        request = Request(
             method, uri, query, self.headers, self.client_address[0], self.read_body)
         response = request_pipeline(request)
         self.send_json_response(response, send_body=method != 'HEAD')

@@ -3,17 +3,16 @@ import unittest
 from unittest.mock import patch
 
 from core.exceptions import UnauthorizedError
-from core.http import Response
+from core.http import Request, Response
 from core.router import Router
 from middlewares.auth_middleware import AuthMiddleware
-from middlewares.base import RequestContext
 from middlewares.error_middleware import ErrorMiddleware
 from middlewares.logging_middleware import LoggingMiddleware
 
 
 def make_request():
     """Build a minimal request context suitable for middleware tests."""
-    return RequestContext('POST', '/test', {}, {}, '127.0.0.1', lambda: '')
+    return Request('POST', '/test', {}, {}, '127.0.0.1', lambda: '')
 
 
 class TestLoggingMiddleware(unittest.TestCase):
@@ -66,7 +65,7 @@ class TestAuthMiddleware(unittest.TestCase):
 
     @staticmethod
     def send(middleware, method, path, headers):
-        request = RequestContext(method, path, {}, headers, '127.0.0.1', lambda: '')
+        request = Request(method, path, {}, headers, '127.0.0.1', lambda: '')
         middleware.handle(request, lambda req: Response(200))
         return request
 
