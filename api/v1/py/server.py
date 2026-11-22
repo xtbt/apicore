@@ -33,23 +33,25 @@ class HTTPHandler(BaseHTTPRequestHandler):
     # always sends Content-Length, as HTTP/1.1 requires)
     protocol_version = 'HTTP/1.1'
 
-    def send_json_response(self, data, status=200, send_body=True, extra_headers=None):
+    def send_json_response(self, response, send_body=True):
         body = b''
-        if status != 204 and data is not None:
-            body = json.dumps(data, ensure_ascii=False, default=str).encode('utf-8')
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        for name, value in (extra_headers or {}).items():
-            self.send_header(name, value)
-        self.end_headers()
-        if send_body and body:
-            try:
+        if response.status != 204 and response.payload is not None:
+            body = json.dumps(response.payload, ensure_ascii=False, default=str).encode('utf-8')
+        try:
+            self.send_response(response.status)
+            if response.status != 204:
+                # A 204 carries no body, so RFC 7230 forbids Content-Length and Content-Type
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(body)))
+            for name, value in response.headers.items():
+                self.send_header(name, value)
+            self.end_headers()
+            if send_body and body:
                 self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError):
-                # The client hung up before reading the response: nothing to send
-                self.close_connection = True
-                logging.info('Client disconnected before reading the response')
+        except (BrokenPipeError, ConnectionResetError):
+            # The client hung up before reading the response: nothing to send
+            self.close_connection = True
+            logging.info('Client disconnected before reading the response')
 
     def read_body(self):
         """Read the request body, rejecting an invalid or oversized Content-Length."""
@@ -78,8 +80,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
         request = RequestContext(
             method, uri, query, self.headers, self.client_address[0], self.read_body)
         response = request_pipeline(request)
-        self.send_json_response(response.payload, response.status, send_body=method != 'HEAD',
-                                extra_headers=response.headers)
+        self.send_json_response(response, send_body=method != 'HEAD')
 
     def log_message(self, format, *args):
         pass  # the default per-request stderr log is replaced by the structured one above
