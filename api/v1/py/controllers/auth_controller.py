@@ -1,12 +1,12 @@
 """Auth controller: login (token generation) and logout (token revocation)."""
 from controllers.base_controller import BaseController
-from services.token_service import generate_token, revoke_token
 from core.exceptions import UnauthorizedError
 from core.rate_limiter import RateLimiter
-from core.security import build_token_response, hash_password, verify_password
+from core.security import hash_password, verify_password
 from core.settings import settings
 from models.user import User
 from models.user_token import UserToken
+from services.token_service import build_token_response, generate_token, revoke_token
 
 # Verified against a dummy hash when the username does not exist, so the response
 # time matches a real check and users cannot be enumerated by timing

@@ -3,7 +3,7 @@ import sys
 from http.server import ThreadingHTTPServer
 
 from core.exceptions import AppError
-from core.http import Response
+from core.http import Response, route_method
 from core.logger import configure_logging
 from core.router import Router
 from core.settings import settings
@@ -32,9 +32,8 @@ def dispatch_request(request):
         return Response(204, headers={'Allow': allow})
 
     # HEAD uses GET's route and headers, but HTTPHandler suppresses its body.
-    route_method = 'GET' if method == 'HEAD' else method
     status, payload = router.dispatch(
-        route_method, request.path, request.read_body(), request.query,
+        route_method(method), request.path, request.read_body(), request.query,
         token=request.token, user=request.user,
     )
     return Response(status, payload)

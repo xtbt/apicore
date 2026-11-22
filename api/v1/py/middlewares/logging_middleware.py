@@ -6,7 +6,7 @@ status of a failed request too, before the error is translated into a response.
 import logging
 import time
 
-from core.exceptions import AppError
+from core.exceptions import status_of
 from middlewares.base import Middleware
 
 
@@ -17,14 +17,8 @@ class LoggingMiddleware(Middleware):
         start = time.perf_counter()
         try:
             response = call_next(request)
-        except AppError as error:
-            self._log(request, error.status_code, start)
-            raise
-        except ValueError:
-            self._log(request, 400, start)
-            raise
-        except Exception:
-            self._log(request, 500, start)
+        except Exception as error:
+            self._log(request, status_of(error), start)
             raise
         self._log(request, response.status, start)
         return response

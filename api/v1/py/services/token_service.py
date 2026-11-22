@@ -7,7 +7,7 @@ request objects, no status codes. core/security.py holds the pure crypto.
 """
 from datetime import datetime
 
-from utils.date_utils import utc_from_timestamp, utc_now
+from utils.date_utils import isoformat_from_timestamp, utc_from_timestamp, utc_now
 from core.exceptions import UnauthorizedError
 from core.security import encode_token, generate_payload, hash_token, verify_token
 from models.user_token import UserToken
@@ -42,6 +42,24 @@ def generate_token(user_id, role, lifetime_minutes, min_remaining_minutes,
         if token_model is None:
             model.close()
     return token, payload
+
+
+def build_token_response(token, payload):
+    """Format a login response from the payload already available at generation.
+
+    The caller always holds the payload (generate_token returns it), so the JWT
+    is never parsed a second time.
+    """
+    expires_at = None
+    if 'exp' in payload:
+        expires_at = isoformat_from_timestamp(payload['exp'])
+    return {
+        'token': token,
+        'token_type': 'Bearer',
+        'expires_at': expires_at,
+        'persistent': 'exp' not in payload,
+        'min_remaining_minutes': payload['min_remaining_minutes'],
+    }
 
 
 def decode_token(token):

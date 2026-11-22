@@ -4,6 +4,7 @@ Layer: middlewares (cross-cutting). Sets request.token and request.user, so the
 Router and the controllers never parse the Authorization header themselves.
 """
 from core.exceptions import UnauthorizedError
+from core.http import route_method
 from middlewares.base import Middleware
 
 
@@ -32,8 +33,7 @@ class AuthMiddleware(Middleware):
 
     def handle(self, request, call_next):
         # HEAD reuses the GET route and must have the same authentication policy.
-        method = 'GET' if request.method == 'HEAD' else request.method
-        public = self.router.route_public(method, request.path)
+        public = self.router.route_public(route_method(request.method), request.path)
         if public is False:
             # Protected route: a missing, malformed, expired or revoked token is a 401
             request.token, request.user = self._authenticate(request.headers)
@@ -45,5 +45,4 @@ class AuthMiddleware(Middleware):
             except UnauthorizedError:
                 pass
         # public is None: no route for this method, the Router answers 404/405
-        # TODO: require_role(*roles) hook for role-based authorization (stage 10).
         return call_next(request)

@@ -22,6 +22,11 @@ class Request:
         self.user = None          # decoded token payload, set by auth_middleware
 
 
+def route_method(method):
+    """HEAD reuses the GET route: same handler and headers, body suppressed by server.py."""
+    return 'GET' if method == 'HEAD' else method
+
+
 class Response:
     """What an endpoint or middleware returns: status code, payload and headers."""
 

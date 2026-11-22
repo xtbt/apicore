@@ -109,21 +109,3 @@ def verify_token(token: str) -> dict:
     if 'exp' in payload and payload['exp'] < time.time():
         raise UnauthorizedError('Token expired')
     return payload
-
-
-def build_token_response(token: str, payload: dict) -> dict:
-    """Format a login response from the payload already available at generation.
-
-    The caller always holds the payload (generate_token returns it), so the JWT
-    is never parsed a second time.
-    """
-    expires_at = None
-    if 'exp' in payload:
-        expires_at = isoformat_from_timestamp(payload['exp'])
-    return {
-        'token': token,
-        'token_type': 'Bearer',
-        'expires_at': expires_at,
-        'persistent': 'exp' not in payload,
-        'min_remaining_minutes': payload['min_remaining_minutes'],
-    }

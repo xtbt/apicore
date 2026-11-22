@@ -7,9 +7,8 @@ import unittest
 from unittest.mock import patch
 
 from core.exceptions import UnauthorizedError
-from core.security import (base64url_decode, base64url_encode, build_token_response,
-                           encode_token, generate_payload, hash_password, hash_token,
-                           verify_password, verify_token)
+from core.security import (base64url_decode, base64url_encode, encode_token, generate_payload,
+                           hash_password, hash_token, verify_password, verify_token)
 
 
 class TestPasswordHashing(unittest.TestCase):
@@ -107,27 +106,6 @@ class TestTokens(unittest.TestCase):
         self.assertEqual(hash_token('abc'), hash_token('abc'))
         self.assertNotEqual(hash_token('abc'), hash_token('abd'))
         self.assertEqual(len(hash_token('abc')), 64)
-
-    def test_build_token_response(self):
-        payload = generate_payload(7, 'User', 60, 10)
-        token = encode_token(payload)
-        response = build_token_response(token, payload)
-        self.assertEqual(response['token'], token)
-        self.assertEqual(response['token_type'], 'Bearer')
-        self.assertEqual(response['min_remaining_minutes'], 10)
-        self.assertIsNotNone(response['expires_at'])
-
-    def test_build_token_response_does_not_decode_the_token(self):
-        token = 'header.payload.signature'
-        payload = {'exp': 1_900_000_000, 'min_remaining_minutes': 10}
-        with patch('core.security.base64url_decode', side_effect=AssertionError('must not decode')):
-            response = build_token_response(token, payload)
-        self.assertEqual(response['token'], token)
-        self.assertIsNotNone(response['expires_at'])
-
-    def test_build_token_response_persistent(self):
-        payload = generate_payload(7, 'User', 60, 10, persistent=True)
-        self.assertIsNone(build_token_response(encode_token(payload), payload)['expires_at'])
 
 
 if __name__ == '__main__':

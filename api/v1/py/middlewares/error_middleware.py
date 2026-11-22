@@ -5,7 +5,7 @@ so every error leaves the pipeline as a uniform JSON body.
 """
 import logging
 
-from core.exceptions import AppError
+from core.exceptions import AppError, status_of
 from core.http import Response
 from middlewares.base import Middleware
 
@@ -19,10 +19,8 @@ class ErrorMiddleware(Middleware):
     def handle(self, request, call_next):
         try:
             return call_next(request)
-        except AppError as error:
-            return Response.error(error.status_code, str(error))
-        except ValueError as error:
-            return Response.error(400, str(error))
-        except Exception:
+        except (AppError, ValueError) as error:
+            return Response.error(status_of(error), str(error))
+        except Exception as error:
             logging.exception('Unhandled error on %s %s', request.method, request.path)
-            return Response.error(500, 'Internal server error')
+            return Response.error(status_of(error), 'Internal server error')

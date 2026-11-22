@@ -32,3 +32,12 @@ class TooManyRequestsError(AppError):
 
 class ServiceUnavailableError(AppError):
     status_code = 503
+
+
+def status_of(error):
+    """HTTP status an exception maps to: AppError keeps its own, ValueError is a 400, the rest a 500."""
+    if isinstance(error, AppError):
+        return error.status_code
+    if isinstance(error, ValueError):
+        return 400
+    return 500
