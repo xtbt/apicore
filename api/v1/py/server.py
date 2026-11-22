@@ -14,6 +14,9 @@ from middlewares.base import RequestContext
 
 MAX_BODY_BYTES = 1024 * 1024  # 1 MB cap for request bodies
 
+# Written by send_json_response itself: a Response must not set them again.
+RESERVED_HEADERS = frozenset({'content-type', 'content-length'})
+
 # Injected by main.py via set_request_pipeline(); read at call time so the
 # pipeline (which needs the route table) can be built after importing this module.
 request_pipeline = None
@@ -30,7 +33,7 @@ class HTTPHandler(BaseHTTPRequestHandler):
     and writes the JSON response."""
 
     # Keep-alive: one TCP connection can serve several requests (send_json_response
-    # always sends Content-Length, as HTTP/1.1 requires)
+    # always sends Content-Length when there is a body, as HTTP/1.1 requires)
     protocol_version = 'HTTP/1.1'
 
     def send_json_response(self, response, send_body=True):
@@ -44,7 +47,8 @@ class HTTPHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Content-Length', str(len(body)))
             for name, value in response.headers.items():
-                self.send_header(name, value)
+                if name.lower() not in RESERVED_HEADERS:
+                    self.send_header(name, value)
             self.end_headers()
             if send_body and body:
                 self.wfile.write(body)
