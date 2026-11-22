@@ -106,16 +106,20 @@ class Router:
         self.add_route('DELETE', item, controller_class, delete,
                        public or 'DELETE' in public_methods)
 
+    def _matching(self, path):
+        """Routes whose pattern matches `path` (any method)."""
+        return [route for route in self.routes if route[1].match(path)]
+
     def route_public(self, method, path):
         """Return route visibility, or None if this method/path has no route."""
-        for route_method, regex, _handler, _controller, public in self.routes:
-            if route_method == method and regex.match(path):
+        for route_method, _regex, _handler, _controller, public in self._matching(path):
+            if route_method == method:
                 return public
         return None
 
     def allowed_methods(self, path):
         """HTTP methods registered for `path` (empty list when no pattern matches)."""
-        return [method for method, regex, _h, _c, _p in self.routes if regex.match(path)]
+        return [route[0] for route in self._matching(path)]
 
     def dispatch(self, method, path, body, query=None, token=None, user=None):
         """Run the matching route with auth context supplied by middleware.

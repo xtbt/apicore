@@ -7,9 +7,9 @@ from core.http import Response
 from core.logger import configure_logging
 from core.router import Router
 from core.settings import settings
+from middlewares import default_pipeline
 from routers import register_all
 from services.token_service import decode_token
-from middlewares import default_pipeline
 from server import HTTPHandler, set_request_pipeline
 
 configure_logging()
@@ -42,8 +42,6 @@ def dispatch_request(request):
 
 request_pipeline = default_pipeline(router, dispatch_request, decode_token)
 set_request_pipeline(request_pipeline)
-
-
 
 if __name__ == "__main__":
     try:
