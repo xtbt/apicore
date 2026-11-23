@@ -24,7 +24,10 @@ use Apicore\Middlewares\ErrorMiddleware;
 use Apicore\Middlewares\LoggingMiddleware;
 use Apicore\Middlewares\Pipeline;
 use Apicore\Routers\AuthRouter;
+use Apicore\Routers\ExampleRouter;
 use Apicore\Routers\HealthRouter;
+use Apicore\Routers\MoodRouter;
+use Apicore\Routers\UserRouter;
 use Apicore\Services\TokenService;
 
 require __DIR__ . '/Core/Autoloader.php';
@@ -130,6 +133,9 @@ $emit = static function (Response $response, bool $sendBody): void {
 $router = new Router();
 HealthRouter::register($router);
 AuthRouter::register($router);
+UserRouter::register($router);
+MoodRouter::register($router);
+ExampleRouter::register($router);
 
 /**
  * Handle protocol-specific routes and delegate application routes to Router.
