@@ -18,13 +18,14 @@ use Apicore\Core\Request;
 use Apicore\Core\Response;
 use Apicore\Core\Router;
 use Apicore\Core\Settings;
-use Apicore\Core\UnauthorizedError;
 use Apicore\Middlewares\AuthMiddleware;
 use Apicore\Middlewares\CorsMiddleware;
 use Apicore\Middlewares\ErrorMiddleware;
 use Apicore\Middlewares\LoggingMiddleware;
 use Apicore\Middlewares\Pipeline;
+use Apicore\Routers\AuthRouter;
 use Apicore\Routers\HealthRouter;
+use Apicore\Services\TokenService;
 
 require __DIR__ . '/Core/Autoloader.php';
 
@@ -128,6 +129,7 @@ $emit = static function (Response $response, bool $sendBody): void {
 // Route table shared by all requests; routers are discovered from the package.
 $router = new Router();
 HealthRouter::register($router);
+AuthRouter::register($router);
 
 /**
  * Handle protocol-specific routes and delegate application routes to Router.
@@ -152,10 +154,8 @@ $dispatch = static function (Request $request) use ($router): Response {
     );
 };
 
-// Phase 3 replaces this stub with Services\TokenService::decode
-$authenticator = static function (string $token): array {
-    throw new UnauthorizedError('Token revoked or unknown');
-};
+// The authenticator is the only place the pipeline learns how a token is decoded
+$authenticator = static fn (string $token): array => TokenService::decodeToken($token);
 
 $pipeline = Pipeline::build(
     [
