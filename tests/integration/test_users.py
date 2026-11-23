@@ -13,7 +13,7 @@ from functools import partial
 from tests.integration import support
 from tests.integration.support import db_connect
 
-PORT = 65433  # Dedicated port for tests, distinct from the default 65000
+PORT = 65433 + support.port_offset()  # Dedicated port for tests, distinct from the default 65000
 BASE_URL = f'http://localhost:{PORT}'
 
 call = partial(support.call, BASE_URL)

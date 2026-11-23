@@ -8,7 +8,7 @@ from functools import partial
 
 from tests.integration import support
 
-PORT = 65440
+PORT = 65440 + support.port_offset()
 BASE_URL = f'http://localhost:{PORT}'
 call = partial(support.call, BASE_URL)
 server_process = None

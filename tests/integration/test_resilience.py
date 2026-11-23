@@ -10,7 +10,7 @@ from functools import partial
 
 from tests.integration import support
 
-PORT = 65439
+PORT = 65439 + support.port_offset()
 BASE_URL = f'http://localhost:{PORT}'
 MAX_BODY_BYTES = 1024 * 1024
 
@@ -81,7 +81,10 @@ class TestBodySizeBoundary(unittest.TestCase):
             connection.close()
 
     def test_one_byte_over_the_cap_is_rejected(self):
-        self.assertIn(b'413', self.send_raw(MAX_BODY_BYTES + 1))
+        # php -S buffers the body before running the script, so the rejection
+        # can only happen once the body has been sent.
+        body = b'x' * (MAX_BODY_BYTES + 1) if support.LANGUAGE == 'php' else b''
+        self.assertIn(b'413', self.send_raw(MAX_BODY_BYTES + 1, body))
 
     def test_exactly_the_cap_is_not_rejected_by_size(self):
         status = self.send_raw(MAX_BODY_BYTES, b'x' * MAX_BODY_BYTES)

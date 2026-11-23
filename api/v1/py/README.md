@@ -214,7 +214,7 @@ demasiado grande, 429 demasiados intentos, 503 servidor ocupado).
 ├── services/            tokens
 ├── routers/             rutas, descubiertas automáticamente
 ├── utils/               fechas y zonas horarias
-└── tests/               unitarios e integración
+└── tests/unit           pruebas unitarias de esta implementación
 ```
 
 Cada capa solo habla con la de al lado: los controladores no escriben SQL, los modelos
@@ -237,16 +237,27 @@ CRUD quedan creadas y protegidas por token.
 
 ## Pruebas
 
+Las pruebas de integración viven en la raíz (`../../tests/integration`) y son las mismas
+para las dos implementaciones: hablan HTTP y no importan código de ninguna de las dos.
+Se elige el servidor con `API_LANGUAGE`.
+
 ```bash
+# Unitarias de esta implementación (no necesitan MySQL ni red)
 python3 -m unittest discover -s tests -t .
+
+# Integración contra el API en Python
+cd ../.. && python3 -m unittest discover -s tests -t .
+
+# Integración contra el API en PHP
+cd ../.. && API_LANGUAGE=php python3 -m unittest discover -s tests -t .
 ```
 
 - `tests/unit`: funciones puras, router, middlewares, controladores y el escritor de
-  respuestas. No necesitan MySQL ni red.
-- `tests/integration`: arrancan `main.py` en un puerto propio (65432, 65433, 65434,
-  65438, 65439, 65440) y hablan HTTP real. **Necesitan MySQL con el esquema cargado**, que
-  incluye las cuentas `godtest`, `admintest`, `usertest` y `othertest` (contraseña igual al
-  usuario).
+  respuestas.
+- `../../tests/integration`: arrancan el servidor en un puerto propio (65432, 65433,
+  65434, 65438, 65439, 65440 para Python; +50 para PHP) y hablan HTTP real.
+  **Necesitan MySQL con el esquema cargado**, que incluye las cuentas `godtest`,
+  `admintest`, `usertest` y `othertest` (contraseña igual al usuario).
 
 Las pruebas de integración crean usuarios y moods temporales y los borran al terminar.
 Si un puerto queda ocupado por una corrida anterior, el módulo falla al arrancar:

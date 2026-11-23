@@ -77,7 +77,7 @@ abstract class BaseModel
             $statement = $this->pdo->prepare(
                 'INSERT INTO ' . static::TABLE_NAME . " ($columns) VALUES ($placeholders)"
             );
-            $statement->execute(array_values($data));
+            $statement->execute(self::bindable(array_values($data)));
             return (int) $this->pdo->lastInsertId();
         } catch (PDOException $error) {
             if (self::isIntegrityViolation($error)) {
@@ -85,6 +85,21 @@ abstract class BaseModel
             }
             throw $error;
         }
+    }
+
+    /**
+     * Values ready to bind: PDO sends a bool as '' unless it is cast, and MySQL
+     * rejects that for a tinyint column, so booleans become 1/0.
+     *
+     * @param list<mixed> $values
+     * @return list<mixed>
+     */
+    protected static function bindable(array $values): array
+    {
+        return array_map(
+            static fn ($value) => is_bool($value) ? (int) $value : $value,
+            $values,
+        );
     }
 
     /**
@@ -170,7 +185,7 @@ abstract class BaseModel
                 'UPDATE ' . static::TABLE_NAME . ' SET ' . $setClause
                 . ' WHERE ' . static::ID_COLUMN . ' = ?'
             );
-            $statement->execute([...array_values($data), $recordId]);
+            $statement->execute([...self::bindable(array_values($data)), $recordId]);
             return self::UPDATED;
         } catch (PDOException $error) {
             if (self::isIntegrityViolation($error)) {

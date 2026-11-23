@@ -8,12 +8,13 @@ existing account, to avoid touching any real user's credentials.
 The server subprocess is always started on setUpModule and terminated on
 tearDownModule (even on failure), so no process or port is left open.
 """
+import secrets
 import unittest
 from functools import partial
 
 from tests.integration import support
 
-PORT = 65432  # Dedicated port for tests, distinct from the default 65000
+PORT = 65432 + support.port_offset()  # Dedicated port for tests, distinct from the default 65000
 BASE_URL = f'http://localhost:{PORT}'
 
 call = partial(support.call, BASE_URL)
@@ -115,7 +116,8 @@ class TestMoodsCRUD(unittest.TestCase):
 
     def test_6_login_rate_limit(self):
         """After 5 failed logins for a username the 6th attempt is blocked with 429."""
-        creds = {'Username': 'nouser_ratelimit', 'Password': 'bad'}
+        # A fresh username per run: the limiter keeps its counters across runs
+        creds = {'Username': 'rl_' + secrets.token_hex(3), 'Password': 'bad'}
         for _ in range(5):
             self.assertEqual(call('POST', '/auth/login', creds)[0], 401)
         self.assertEqual(call('POST', '/auth/login', creds)[0], 429)

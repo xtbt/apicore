@@ -36,8 +36,19 @@ jobs:
       - name: Load schema
         run: mysql -h 127.0.0.1 -P 3306 -uroot -proot < apicore.sql
 
-      - name: Run tests
+      - name: Run unit tests
         working-directory: api/v1/py
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_NAME: apicore
+          DB_USER: root
+          DB_PASSWORD: root
+          # CI-only value: never reuse it outside this workflow
+          JWT_SECRET: ci-only-not-a-production-secret
+        run: python3 -m unittest discover -s tests -t . -v
+
+      - name: Run integration tests
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: '3306'

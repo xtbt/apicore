@@ -23,9 +23,12 @@ final class Database
             return self::$connection;
         }
         $settings = Settings::instance();
+        // PDO treats "localhost" as a unix socket and ignores the port, so the
+        // host is pinned to TCP: DB_PORT then means the same as in Python.
+        $host = $settings->DB_HOST === 'localhost' ? '127.0.0.1' : $settings->DB_HOST;
         $dsn = sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-            $settings->DB_HOST,
+            $host,
             $settings->DB_PORT,
             $settings->DB_NAME,
         );

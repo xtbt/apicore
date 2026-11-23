@@ -1,13 +1,21 @@
 """Shared harness for the integration tests.
 
-Layer: tests (integration). Every suite starts the real server (main.py) on its
-own port and talks to it over HTTP; this module owns that plumbing so the four
-suites do not keep four copies of it.
+Layer: tests (integration). Every suite starts a real server on its own port and
+talks to it over HTTP; this module owns that plumbing so the suites do not keep
+copies of it.
+
+The same suites run against both implementations. Pick one with the
+API_LANGUAGE environment variable (default: python):
+
+    python3 -m unittest discover -s tests -t .                    # Python API
+    API_LANGUAGE=php python3 -m unittest discover -s tests -t .   # PHP API
 """
 import json
 import os
 import re
 import secrets
+import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -18,6 +26,22 @@ import urllib.request
 import mysql.connector
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PY_DIR = os.path.join(ROOT, 'api', 'v1', 'py')
+PHP_DIR = os.path.join(ROOT, 'api', 'v1', 'php')
+
+LANGUAGE = os.environ.get('API_LANGUAGE', 'python').strip().lower()
+if LANGUAGE not in ('python', 'php'):
+    raise RuntimeError(f'API_LANGUAGE must be "python" or "php", not {LANGUAGE!r}')
+
+# Each implementation gets its own port range, so a leftover server from one
+# language never blocks the other. The offset stays small: the highest base
+# port is 65440 and a TCP port cannot exceed 65535.
+PORT_OFFSET = 0 if LANGUAGE == 'python' else 50
+
+
+def port_offset():
+    """Offset added to every suite's base port for the selected language."""
+    return PORT_OFFSET
 
 
 def call(base_url, method, path, data=None, token=None):
@@ -72,14 +96,30 @@ def register_test_user(base_url, prefix, name='Tester'):
     return user_id, username, password, body['data']['token']
 
 
-def start_server(port, base_url, extra_env=None):
-    """Start main.py on `port` and wait until /health answers."""
+def server_command(port, language=None):
+    """Command and working directory that start `language` on `port`."""
+    language = (language or LANGUAGE).lower()
+    if language == 'python':
+        return [sys.executable, 'main.py'], PY_DIR
+    if language == 'php':
+        php = shutil.which('php')
+        if php is None:
+            raise RuntimeError('php is not installed or not in PATH')
+        # The built-in server is single-threaded unless workers are requested
+        return [php, '-S', f'127.0.0.1:{port}', 'index.php'], PHP_DIR
+    raise RuntimeError(f'unknown language: {language!r}')
+
+
+def start_server(port, base_url, extra_env=None, language=None):
+    """Start the selected server on `port` and wait until /health answers."""
+    command, directory = server_command(port, language)
     env = os.environ.copy()
     env['APP_PORT'] = str(port)
     env.update(extra_env or {})
     process = subprocess.Popen(
-        [sys.executable, 'main.py'], cwd=ROOT, env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        command, cwd=directory, env=env,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        start_new_session=True,  # own process group: workers die with the parent
     )
     if not wait_for_server(base_url):
         output = stop_server(process)
@@ -88,14 +128,32 @@ def start_server(port, base_url, extra_env=None):
 
 
 def stop_server(process):
-    """Terminate the server subprocess, release its port and return its output."""
+    """Terminate the server and its workers, release the port and return its output."""
     if process is None:
         return ''
-    process.terminate()
+    # php -S forks workers that inherit the stdout pipe: signal the whole group,
+    # otherwise reading the pipe blocks forever waiting for the children.
+    try:
+        group = os.getpgid(process.pid)
+    except ProcessLookupError:
+        group = None
+    if group is not None:
+        try:
+            os.killpg(group, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    else:
+        process.terminate()
     try:
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
-        process.kill()
+        if group is not None:
+            try:
+                os.killpg(group, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        else:
+            process.kill()
         process.wait()
     output = ''
     if process.stdout is not None:
@@ -127,14 +185,23 @@ def wait_for_log(lines, pattern, timeout=5):
     return None
 
 
-def db_connect():
-    """Direct connection to the database configured in .env (test housekeeping only)."""
+def db_connect(language=None):
+    """Direct connection to the database configured in .env (test housekeeping only).
+
+    Environment variables win over the file, so CI can run without a .env.
+    """
+    directory = PHP_DIR if (language or LANGUAGE).lower() == 'php' else PY_DIR
     config = {}
-    with open(os.path.join(ROOT, '.env')) as env_file:
-        for line in env_file:
-            match = re.match(r'([A-Z_]+)=(.*)', line.strip())
-            if match:
-                config[match.group(1)] = match.group(2)
+    path = os.path.join(directory, '.env')
+    if os.path.isfile(path):
+        with open(path) as env_file:
+            for line in env_file:
+                match = re.match(r'([A-Z_]+)=(.*)', line.strip())
+                if match:
+                    config[match.group(1)] = match.group(2)
+    for key in ('DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'):
+        if os.environ.get(key):
+            config[key] = os.environ[key]
     return mysql.connector.connect(
         host=config.get('DB_HOST', 'localhost'), port=int(config.get('DB_PORT', 3306)),
         user=config['DB_USER'], password=config['DB_PASSWORD'], database=config['DB_NAME']
