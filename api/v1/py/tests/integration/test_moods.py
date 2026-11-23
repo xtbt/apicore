@@ -53,7 +53,7 @@ class TestMoodsCRUD(unittest.TestCase):
     def test_1_create(self):
         """POST /moods creates a record and returns its new id."""
         status, body = call('POST', '/moods', {'MoodName': 'UnitTest', 'MoodStatus': 'Active'}, auth_token)
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 201)
         self.assertIn('ID', body)
         TestMoodsCRUD.mood_id = body['ID']
 

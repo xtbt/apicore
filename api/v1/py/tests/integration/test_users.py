@@ -85,7 +85,7 @@ class TestUsersFlows(unittest.TestCase):
             'Username': username, 'Password': 'x', 'Name': 'N',
             'PaternalSurname': 'N', 'UserStatus': 'Active'
         }, 'garbage-token')
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 201)
 
         # Cleanup: the new account deletes itself (a plain User cannot delete others)
         token = call('POST', '/auth/login', {'Username': username, 'Password': 'x'})[1]['data']['token']
@@ -162,7 +162,7 @@ class TestUsersFlows(unittest.TestCase):
             'Username': second_username, 'Password': 'OtherPass123', 'Name': 'Other',
             'PaternalSurname': 'Tester', 'UserStatus': 'Active'
         })
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 201)
         second_user_id = body['ID']
 
         status, body = call('PATCH', f'/users/{test_user_id}', {'Username': second_username}, auth_token)
@@ -242,7 +242,7 @@ class TestUsersFlows(unittest.TestCase):
             'Username': victim_username, 'Password': 'Victim123', 'Name': 'Victim',
             'PaternalSurname': 'Tester', 'UserStatus': 'Active'
         })
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 201)
         victim_id = body['ID']
 
         self.assertEqual(call('PATCH', f'/users/{victim_id}', {'Name': 'Hacked'}, auth_token)[0], 403)
@@ -281,7 +281,7 @@ class TestUsersFlows(unittest.TestCase):
             'Username': 'promo_' + secrets.token_hex(3), 'Password': 'x', 'Name': 'P',
             'PaternalSurname': 'P', 'UserStatus': 'Active', 'UserRole': 'Admin'
         }, auth_token)
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 201)
         call('DELETE', f"/users/{body['ID']}", token=auth_token)
 
         # Demote again: the same token must lose the privilege immediately

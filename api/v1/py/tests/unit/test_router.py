@@ -105,5 +105,22 @@ class TestPageSizeLimit(unittest.TestCase):
         self.assertGreater(MAX_PAGE_SIZE, 0)
 
 
+class TestCreateResponse(unittest.TestCase):
+    """POST returns 201 with a Location header pointing at the new record."""
+
+    def test_create_returns_201_and_location(self):
+        class CrudStub(StubController):
+            NOT_FOUND, UNCHANGED, UPDATED = 'not_found', 'unchanged', 'updated'
+
+            def create(self, data):
+                return 7
+
+        router = Router()
+        router.add_crud_routes('/items', CrudStub, 'Item', public=True)
+        response = router.dispatch('POST', '/items', '{"a": 1}')
+        self.assertEqual((response.status, response.payload['ID']), (201, 7))
+        self.assertEqual(response.headers['Location'], '/items/7')
+
+
 if __name__ == '__main__':
     unittest.main()

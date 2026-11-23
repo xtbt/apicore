@@ -1,7 +1,7 @@
-"""Health routes: liveness probe (public, no database access)."""
+"""Health routes: liveness and database readiness probe (public)."""
 from controllers.health_controller import HealthController
 
 
 def register_routes(router):
     router.add_route('GET', '/health', HealthController,
-                     lambda c, p, body: (200, c.check()), public=True)
+                     lambda c, p, body: c.check(), public=True)

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:8889
--- Generation Time: Nov 09, 2026 at 03:54 AM
+-- Generation Time: Nov 09, 2026 at 05:13 AM
 -- Server version: 5.7.32
 -- PHP Version: 8.0.3
 
@@ -66,21 +66,23 @@ CREATE TABLE `users` (
   `Name` varchar(45) NOT NULL,
   `PaternalSurname` varchar(25) NOT NULL,
   `MaternalSurname` varchar(25) DEFAULT NULL,
-  `UserStatus` enum('Active','Inactive') NOT NULL
+  `UserStatus` enum('Active','Inactive') NOT NULL,
+  `UserRole` enum('God','Admin','User') NOT NULL DEFAULT 'User'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='API test users table';
 
 --
 -- Dumping data for table `users`
 --
+-- godtest/admintest/usertest are the documented test accounts (password = username)
+-- used by the integration suite and the Insomnia/Postman collections.
+--
 
-INSERT INTO `users` (`UserId`, `Username`, `Password`, `Name`, `PaternalSurname`, `MaternalSurname`, `UserStatus`) VALUES
-(1, 'test', 'd480164bc4aa430a9a97e920d5aba2ab:58fe6400cf00bac8e3cea6dc093bc8288eab4ff5d482772c85b607a6e200a171', 'test', 'test', '', 'Active'),
-(2, 'qsvqgexi', '7f84d592505b431b8b1ee2bd87bd108a:6c41847673bea58541cd7157186be086e4c0e66d6ab83153115d94013bb16918', 'Sofia', 'Sánchez', '', 'Active'),
-(3, 'oznic333', 'a470951b607345cba7712a7d9cd6664c:ee0fc16dd62f31747be13987278f07732c3917b1264d3d97497e2346f551b81d', 'Ana', 'Torres', '', 'Active'),
-(4, '8tecjxjm', '43eef114bdcb47899fb42d7c911f553c:6fdb605b247fd680f53eafd432011880b8080261c62399a1ec32c851b4748fe7', 'Laura', 'Martínez', '', 'Active'),
-(5, 'a6re9szi', '975d64e43fad4ba897fcf87891a6abf4:4f2ac0d5b65b86a4543ba716bcc44d5928e93b9d6645c7877ae4858257590187', 'Pedro', 'Torres', '', 'Active'),
-(6, '6eo5sey5', '86b3bb2ca4ea415591dc87f6087a0ae9:723e52642cf44bf25f1ea3e4942320a2380f1a35abb1058e382f09d3407fb517', 'Sofia', 'López', '', 'Active'),
-(7, 'tijuana', '3edf79fe1bc14e3c822c0c8dfa8a37cf:7b46f20f4d1020380218a62464e42977278a240b3deda701dfff5ff8f9d48956', 'tijuana', 'tijuana', '', 'Active');
+INSERT INTO `users` (`UserId`, `Username`, `Password`, `Name`, `PaternalSurname`, `MaternalSurname`, `UserStatus`, `UserRole`) VALUES
+(1, 'test', 'd480164bc4aa430a9a97e920d5aba2ab:58fe6400cf00bac8e3cea6dc093bc8288eab4ff5d482772c85b607a6e200a171', 'test', 'test', '', 'Active', 'User'),
+(2, 'jonny', 'pbkdf2_sha256$100000$8d671f3b5d29d550431858ff49a74b51$883dab57313a9d0a42f7c7d86eda3853b6db6ff39525e3f57b58398e86e52dad', 'jonny', 'tijuana', 'bc', 'Active', 'User'),
+(3, 'godtest', 'pbkdf2_sha256$100000$35fbf0a5632275faa36b8d9cc3eff48b$e2e2da65888f538d345f2289575d0d56d67b053f4038b58fec8684be4518ecdb', 'God', 'Test', '', 'Active', 'God'),
+(4, 'admintest', 'pbkdf2_sha256$100000$f0ef49a8ab34322ee34a4279841ebc47$fb17c7452101ed521e4557f97a545290fd23facc9f16d7c162b49107226153f0', 'Admin', 'Test', '', 'Active', 'Admin'),
+(5, 'usertest', 'pbkdf2_sha256$100000$d120fc9a208b384df26170bebe9744a3$94fec08155da73dc988bd104fdc557097c59350e29bbe8fb6ff78dd1480288f8', 'User', 'Test', '', 'Active', 'User');
 
 -- --------------------------------------------------------
 
@@ -114,6 +116,9 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`UserId`),
   ADD UNIQUE KEY `Username` (`Username`);
 
+--
+-- Indexes for table `users_tokens`
+--
 ALTER TABLE `users_tokens`
   ADD PRIMARY KEY (`TokenId`),
   ADD UNIQUE KEY `TokenHash` (`TokenHash`),
@@ -133,10 +138,13 @@ ALTER TABLE `moods`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `UserId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `UserId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
+--
+-- AUTO_INCREMENT for table `users_tokens`
+--
 ALTER TABLE `users_tokens`
-  MODIFY `TokenId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `TokenId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

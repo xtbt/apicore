@@ -34,6 +34,8 @@ class Settings:
         self.JWT_ALGORITHM = get('JWT_ALGORITHM', 'HS256')
         self.TOKEN_LIFETIME_MINUTES = int(get('TOKEN_LIFETIME_MINUTES', 60))
         self.TOKEN_MIN_REMAINING_MINUTES = int(get('TOKEN_MIN_REMAINING_MINUTES', 10))
+        # '*' allows any origin (fine for a classroom API); set a URL to restrict it
+        self.CORS_ALLOW_ORIGIN = get('CORS_ALLOW_ORIGIN', '*')
 
     def validate(self):
         """Raise ValueError listing every required setting that is missing.

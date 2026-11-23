@@ -6,6 +6,8 @@ it must never contain business logic, SQL or HTTP server code.
 import json
 import re
 
+from core.http import Response
+
 MAX_PAGE_SIZE = 100  # upper bound for ?size= on list endpoints
 
 
@@ -70,7 +72,9 @@ class Router:
             return (200, {'status': 'ok', 'data': element}) if element else not_found
 
         def create(c, p, body):
-            return 200, {'status': 'ok', 'ID': c.create(json_object(body))}
+            record_id = c.create(json_object(body))
+            return Response(201, {'status': 'ok', 'ID': record_id},
+                            {'Location': f'{path}/{record_id}'})
 
         def update_with(action):
             def handler(c, p, body):
@@ -131,9 +135,10 @@ class Router:
     def dispatch(self, method, path, body, query=None, token=None, user=None):
         """Run the matching route with auth context supplied by middleware.
 
-        Returns (status, payload). 404 if no pattern matches the path; 405 if the
-        path exists but not for that method. A controller (and its DB connection)
-        is created per request.
+        Returns what the handler returns: a (status, payload) pair, or a Response
+        when the handler needs its own headers (POST returns 201 + Location).
+        404 if no pattern matches the path; 405 if the path exists but not for
+        that method. A controller (and its DB connection) is created per request.
         """
         path_found = False
         for route_method, regex, handler, controller_class, public in self.routes:

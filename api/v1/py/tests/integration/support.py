@@ -34,12 +34,18 @@ def call(base_url, method, path, data=None, token=None):
 
 
 def wait_for_server(base_url, timeout=5):
-    """Poll /health until the server answers or timeout is reached."""
+    """Poll /health until the server answers or timeout is reached.
+
+    Any HTTP answer counts as alive, including 503: the server is listening even
+    when its database is down, which is exactly what the outage test needs.
+    """
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             with urllib.request.urlopen(f'{base_url}/health', timeout=0.5):
                 return True
+        except urllib.error.HTTPError:
+            return True
         except Exception:
             time.sleep(0.2)
     return False
@@ -56,7 +62,7 @@ def register_test_user(base_url, prefix, name='Tester'):
         'Username': username, 'Password': password,
         'Name': name, 'PaternalSurname': 'Tester', 'UserStatus': 'Active'
     })
-    if status != 200:
+    if status != 201:
         raise RuntimeError(f'could not register the test user: {status} {body}')
     user_id = body['ID']
     status, body = call(base_url, 'POST', '/auth/login',

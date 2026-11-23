@@ -1,0 +1,752 @@
+{
+  "info": {
+    "name": "apicore API v1",
+    "description": "Coleccion de todos los endpoints disponibles en api/v1/py.\n\nPasos:\n1. Arranca el servidor: cd api/v1/py && python3 main.py (APP_PORT en .env, por defecto 65000).\n2. Ejecuta los tres login de la carpeta Auth y copia data.token de cada respuesta en las variables de entorno token_god, token_admin y token_user.\n3. Ajusta user_id y mood_id segun los IDs que devuelvan los POST.\n\nUsuarios de prueba: godtest/godtest (God), admintest/admintest (Admin), usertest/usertest (User).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Login publico y logout protegido. Copia data.token en las variables de entorno.",
+      "item": [
+        {
+          "name": "Login (God)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "Copia data.token en token_god.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Username\": \"godtest\",\n  \"Password\": \"godtest\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Login (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "Copia data.token en token_admin.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Username\": \"admintest\",\n  \"Password\": \"admintest\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Login (User)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "Copia data.token en token_user.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Username\": \"usertest\",\n  \"Password\": \"usertest\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Logout (revoca el token)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/auth/logout",
+            "description": "Revoca el token usado. Despues de esto, ese token devuelve 401.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_user}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS Login",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": "{{base_url}}/auth/login",
+            "description": "Muestra en Allow los métodos admitidos para /auth/login."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS Logout",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": "{{base_url}}/auth/logout",
+            "description": "Muestra en Allow los métodos admitidos para /auth/logout."
+          },
+          "response": [],
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Estado del servidor. Publico.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health",
+            "description": "200 con {\"status\":\"ok\"} si el servidor y la base de datos responden; 503 si la base no esta disponible."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "HEAD Health (sin cuerpo)",
+          "request": {
+            "method": "HEAD",
+            "header": [],
+            "url": "{{base_url}}/health",
+            "description": "Devuelve los encabezados de GET /health, sin cuerpo de respuesta. Publico."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS Health",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": "{{base_url}}/health",
+            "description": "Muestra en Allow los métodos admitidos para /health."
+          },
+          "response": [],
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "POST /users es publico (registro). El resto exige token. PUT pide payload completo; PATCH solo los campos enviados.",
+      "item": [
+        {
+          "name": "Create (registro publico)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "description": "Publico. Sin token crea siempre User. Con token de Admin/God acepta UserRole (God solo lo asigna God). Responde 201 con Location: /users/{id}. Copia el ID en user_id.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Username\": \"{{new_username}}\",\n  \"Password\": \"TestPass123\",\n  \"Name\": \"QA\",\n  \"PaternalSurname\": \"Tester\",\n  \"MaternalSurname\": \"Pruebas\",\n  \"UserStatus\": \"Active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users",
+            "description": "page empieza en 1. Sin page/size devuelve todo. Valores invalidos dan 400.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users/{{user_id}}",
+            "description": "404 si no existe. Nunca devuelve Password.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update PUT (payload completo)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{user_id}}",
+            "description": "Exige Username, Name y PaternalSurname. Password es opcional (omitida = sin cambios). Un payload parcial da 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Username\": \"{{new_username}}\",\n  \"Name\": \"QA\",\n  \"PaternalSurname\": \"Tester\",\n  \"MaternalSurname\": \"Pruebas\",\n  \"UserStatus\": \"Active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update PATCH (parcial)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{user_id}}",
+            "description": "Solo valida y escribe los campos enviados. Si no cambia nada responde \"No changes to apply\".",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Name\": \"QA Patch\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "PATCH rol como Admin (403 con God)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{user_id}}",
+            "description": "Admin puede asignar Admin o User, pero no God: este caso debe devolver 403.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"UserRole\": \"God\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/users/{{user_id}}",
+            "description": "Borra el usuario y revoca todos sus tokens. 404 si ya no existe.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS Users",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": "{{base_url}}/users",
+            "description": "Muestra en Allow los métodos admitidos para la colección /users."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS User por ID",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": "{{base_url}}/users/{{user_id}}",
+            "description": "Muestra en Allow los métodos CRUD admitidos para /users/{id}."
+          },
+          "response": [],
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Moods",
+      "description": "CRUD completo, todas las rutas protegidas. MoodStatus: Active o Inactive.",
+      "item": [
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/moods",
+            "description": "MoodName obligatorio, maximo 16 caracteres. Responde 201 con Location: /moods/{id}. Copia el ID en mood_id.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"MoodName\": \"QA Mood\",\n  \"MoodStatus\": \"Active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/moods",
+            "description": "page empieza en 1. Sin page/size devuelve todo.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/moods/{{mood_id}}",
+            "description": "404 si no existe.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update PUT (payload completo)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/moods/{{mood_id}}",
+            "description": "Exige MoodName y MoodStatus. Un payload parcial da 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"MoodName\": \"QA Mood\",\n  \"MoodStatus\": \"Inactive\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update PATCH (parcial)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/moods/{{mood_id}}",
+            "description": "Solo valida y escribe los campos enviados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"MoodStatus\": \"Active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/moods/{{mood_id}}",
+            "description": "404 si ya no existe.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "HEAD Moods (protegido, sin cuerpo)",
+          "request": {
+            "method": "HEAD",
+            "header": [],
+            "url": "{{base_url}}/moods",
+            "description": "Equivale a GET /moods pero no devuelve cuerpo. Requiere token y admite page/size.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS Moods",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": "{{base_url}}/moods",
+            "description": "Muestra en Allow los métodos admitidos para la colección /moods."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS preflight CORS",
+          "request": {
+            "method": "OPTIONS",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:5173"
+              },
+              {
+                "key": "Access-Control-Request-Method",
+                "value": "POST"
+              },
+              {
+                "key": "Access-Control-Request-Headers",
+                "value": "authorization,content-type"
+              }
+            ],
+            "url": "{{base_url}}/moods",
+            "description": "Preflight del navegador: 204 con Allow y las cabeceras Access-Control-Allow-*."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "OPTIONS Mood por ID",
+          "request": {
+            "method": "OPTIONS",
+            "header": [],
+            "url": "{{base_url}}/moods/{{mood_id}}",
+            "description": "Muestra en Allow los métodos CRUD admitidos para /moods/{id}."
+          },
+          "response": [],
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Casos de error",
+      "description": "Respuestas esperadas de los controles de robustez.",
+      "item": [
+        {
+          "name": "404 ruta desconocida",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/nope",
+            "description": "Esperado: 404 {\"error\":\"Not found\"}."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "405 metodo no permitido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/moods/{{mood_id}}",
+            "description": "Esperado: 405 {\"error\":\"Method not allowed\"}.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "401 sin token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/moods",
+            "description": "Esperado: 401 por Authorization ausente."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "400 body no objeto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "Esperado: 400 {\"error\":\"Body must be a JSON object\"}.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\"no\", \"es\", \"objeto\"]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:65000"
+    },
+    {
+      "key": "token_god",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_user",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": "3"
+    },
+    {
+      "key": "mood_id",
+      "value": "1"
+    },
+    {
+      "key": "new_username",
+      "value": "qa_test01"
+    }
+  ]
+}

@@ -42,11 +42,12 @@ def dispatch_request(request):
         return Response(204, headers={'Allow': allow})
 
     # HEAD uses GET's route and headers, but HTTPHandler suppresses its body.
-    status, payload = router.dispatch(
+    result = router.dispatch(
         route_method(method), request.path, request.read_body(), request.query,
         token=request.token, user=request.user,
     )
-    return Response(status, payload)
+    # Handlers return (status, payload); POST returns a Response to add Location
+    return result if isinstance(result, Response) else Response(*result)
 
 
 request_pipeline = default_pipeline(router, dispatch_request, decode_token)

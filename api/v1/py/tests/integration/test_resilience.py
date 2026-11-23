@@ -102,7 +102,7 @@ class TestConcurrentWrites(unittest.TestCase):
         cls.token = body['data']['token']
         status, body = call('POST', '/moods',
                             {'MoodName': 'TMPConc', 'MoodStatus': 'Active'}, token=cls.token)
-        if status != 200:
+        if status != 201:
             stop_server()
             raise RuntimeError(f'could not create the mood: {status} {body}')
         cls.mood_id = body['ID']

@@ -6,6 +6,7 @@ from core.exceptions import UnauthorizedError
 from core.http import Request, Response
 from core.router import Router
 from middlewares.auth_middleware import AuthMiddleware
+from middlewares.cors_middleware import CorsMiddleware
 from middlewares.error_middleware import ErrorMiddleware
 from middlewares.logging_middleware import LoggingMiddleware
 
@@ -111,6 +112,30 @@ class TestAuthMiddleware(unittest.TestCase):
     def test_unknown_route_passes_through_for_router_to_answer(self):
         request = self.send(self.build(), 'GET', '/nope', {})
         self.assertIsNone(request.user)
+
+
+class TestCorsMiddleware(unittest.TestCase):
+    """CORS headers reach every response, including the ones built by error_middleware."""
+
+    def test_headers_added_to_a_normal_response(self):
+        response = CorsMiddleware('*').handle(make_request(), lambda request: Response(200, {}))
+        self.assertEqual(response.headers['Access-Control-Allow-Origin'], '*')
+        self.assertIn('PATCH', response.headers['Access-Control-Allow-Methods'])
+        self.assertIn('Authorization', response.headers['Access-Control-Allow-Headers'])
+        self.assertNotIn('Vary', response.headers)
+
+    def test_headers_added_to_an_error_response(self):
+        pipeline = ErrorMiddleware().handle
+        response = CorsMiddleware('*').handle(
+            make_request(), lambda request: pipeline(request, lambda r: Response.error(404, 'x')))
+        self.assertEqual(response.status, 404)
+        self.assertEqual(response.headers['Access-Control-Allow-Origin'], '*')
+
+    def test_fixed_origin_is_varied_by_origin(self):
+        response = CorsMiddleware('https://app.example').handle(
+            make_request(), lambda request: Response(200, {}))
+        self.assertEqual(response.headers['Access-Control-Allow-Origin'], 'https://app.example')
+        self.assertEqual(response.headers['Vary'], 'Origin')
 
 
 if __name__ == '__main__':
