@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>apicore · panel de pruebas</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+</head>
+<body class="bg-body-tertiary">
+
+  <!-- ============ Login screen ============ -->
+  <main id="login-view" class="login-wrapper">
+    <div class="card shadow-sm login-card">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-1">apicore</h1>
+        <p class="text-secondary small mb-4">Panel de pruebas del API</p>
+
+        <form id="login-form" novalidate>
+          <div class="mb-3">
+            <label for="login-username" class="form-label">Usuario</label>
+            <input id="login-username" class="form-control" autocomplete="username" required>
+          </div>
+          <div class="mb-3">
+            <label for="login-password" class="form-label">Contraseña</label>
+            <input id="login-password" type="password" class="form-control" autocomplete="current-password" required>
+          </div>
+          <div class="form-check mb-3">
+            <input id="login-persistent" class="form-check-input" type="checkbox">
+            <label for="login-persistent" class="form-check-label small">Sesión persistente (sin caducidad)</label>
+          </div>
+          <div id="login-error" class="alert alert-danger py-2 small d-none" role="alert"></div>
+          <button id="login-submit" class="btn btn-primary w-100" type="submit">Entrar</button>
+        </form>
+
+        <hr class="my-4">
+        <p class="small text-secondary mb-2">Cuentas de prueba (contraseña = usuario):</p>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-sm btn-outline-secondary quick-login" data-user="godtest">godtest · God</button>
+          <button class="btn btn-sm btn-outline-secondary quick-login" data-user="admintest">admintest · Admin</button>
+          <button class="btn btn-sm btn-outline-secondary quick-login" data-user="usertest">usertest · User</button>
+          <button class="btn btn-sm btn-outline-secondary quick-login" data-user="othertest">othertest · Other</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ Application ============ -->
+  <div id="app-view" class="d-none">
+    <nav class="navbar navbar-expand bg-white border-bottom sticky-top">
+      <div class="container">
+        <span class="navbar-brand mb-0 fw-semibold">apicore</span>
+        <div class="d-flex align-items-center gap-3">
+          <span class="small text-secondary d-none d-sm-inline" id="session-user"></span>
+          <span class="badge text-bg-secondary" id="session-role"></span>
+          <button id="logout-button" class="btn btn-sm btn-outline-danger">Salir</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-4">
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-8">
+          <label for="api-base" class="form-label small text-secondary mb-1">Dirección del API</label>
+          <div class="input-group input-group-sm">
+            <input id="api-base" class="form-control" placeholder="http://localhost:8000">
+            <button id="api-base-apply" class="btn btn-outline-secondary" type="button">Aplicar</button>
+          </div>
+        </div>
+        <div class="col-12 col-lg-4 d-flex align-items-end">
+          <div id="api-status" class="small text-secondary">Sin comprobar</div>
+        </div>
+      </div>
+
+      <ul class="nav nav-tabs" id="main-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-moods" type="button" role="tab">Moods</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-examples" type="button" role="tab">Examples</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-users" type="button" role="tab">Usuarios</button>
+        </li>
+      </ul>
+
+      <div class="tab-content bg-white border border-top-0 rounded-bottom p-3">
+        <section class="tab-pane fade show active" id="tab-moods" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h6 mb-0">Moods</h2>
+            <button class="btn btn-sm btn-primary" data-action="create" data-resource="moods">Nuevo mood</button>
+          </div>
+          <div id="moods-table"></div>
+        </section>
+
+        <section class="tab-pane fade" id="tab-examples" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h6 mb-0">Examples</h2>
+            <button class="btn btn-sm btn-primary" data-action="create" data-resource="examples">Nuevo example</button>
+          </div>
+          <div id="examples-table"></div>
+        </section>
+
+        <section class="tab-pane fade" id="tab-users" role="tabpanel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h6 mb-0">Usuarios</h2>
+            <button class="btn btn-sm btn-primary" data-action="create" data-resource="users">Nuevo usuario</button>
+          </div>
+          <div id="users-table"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Generic form modal ============ -->
+  <div class="modal fade" id="form-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <form id="form-modal-form" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title" id="form-modal-title">Formulario</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <div id="form-modal-error" class="alert alert-danger py-2 small d-none" role="alert"></div>
+            <div id="form-modal-fields" class="row g-3"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="form-modal-submit">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Confirmation modal ============ -->
+  <div class="modal fade" id="confirm-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="confirm-modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="confirm-modal-accept">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

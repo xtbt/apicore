@@ -163,6 +163,21 @@ Ambas leen un `.env` propio; copia el `.env.example` de cada carpeta. Como las d
 el puerto 8000 por defecto, cambia `APP_PORT` en una de ellas si quieres levantarlas a
 la vez.
 
+## Frontend de pruebas
+
+`frontend/` es un panel mínimo en HTML, CSS y JavaScript nativo (sin jQuery) que usa
+Bootstrap solo para lo visual. Sirve contra cualquiera de las dos implementaciones:
+
+```bash
+cd frontend && python3 -m http.server 8080
+# abre http://localhost:8080 y ajusta la dirección del API en la cabecera
+```
+
+Permite iniciar sesión y, según el rol del token, gestionar `moods` y `examples` (User y
+Other), administrar usuarios (Admin) o todo sin restricciones (God). El HTML, el CSS y
+el JavaScript viven en archivos separados: `index.html`, `css/styles.css`,
+`js/api.js` (cliente HTTP), `js/ui.js` (componentes) y `js/app.js` (estado y eventos).
+
 ## Pruebas
 
 Las pruebas de integración viven en `tests/integration`, en la raíz, porque hablan HTTP

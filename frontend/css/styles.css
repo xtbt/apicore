@@ -1,0 +1,124 @@
+/* ==========================================================================
+   apicore · test panel
+   Presentation only: no color or measurement lives in the HTML or the JS.
+   ========================================================================== */
+
+:root {
+  --apicore-accent: #0d6efd;
+}
+
+body {
+  min-height: 100vh;
+}
+
+/* ---------- Login screen ---------- */
+
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 26rem;
+}
+
+/* ---------- Tables ---------- */
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table-wrapper table {
+  margin-bottom: 0;
+}
+
+.table-wrapper th {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bs-secondary-color);
+}
+
+.table-wrapper td {
+  vertical-align: middle;
+  font-size: 0.875rem;
+}
+
+.cell-empty {
+  color: var(--bs-secondary-color);
+  font-style: italic;
+}
+
+.cell-json {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.75rem;
+}
+
+/* ---------- Empty state ---------- */
+
+.empty-state {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--bs-secondary-color);
+}
+
+.empty-state p {
+  margin-bottom: 0;
+}
+
+/* ---------- Modal form ---------- */
+
+#form-modal-fields .form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+#form-modal-fields .form-text {
+  font-size: 0.75rem;
+}
+
+.field-required::after {
+  content: " *";
+  color: var(--bs-danger);
+}
+
+/* ---------- Role badges ---------- */
+
+.role-God {
+  background-color: #6f42c1 !important;
+}
+
+.role-Admin {
+  background-color: #0d6efd !important;
+}
+
+.role-User {
+  background-color: #198754 !important;
+}
+
+.role-Other {
+  background-color: #6c757d !important;
+}
+
+/* ---------- Utilities ---------- */
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+@media (max-width: 575.98px) {
+  .table-wrapper td,
+  .table-wrapper th {
+    font-size: 0.8125rem;
+  }
+}
