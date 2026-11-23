@@ -11,7 +11,7 @@ from functools import partial
 
 from tests.integration import support
 
-PORT = 65434 + support.port_offset()  # Dedicated port for tests, distinct from the default 65000
+PORT = 65434 + support.port_offset()  # Dedicated port for tests, distinct from the default 8000
 BASE_URL = f'http://localhost:{PORT}'
 MAX_BODY_BYTES = 1024 * 1024
 

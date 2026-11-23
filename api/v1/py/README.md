@@ -19,11 +19,11 @@ python3 -m pip install -r requirements.txt
 
 ## Base de datos
 
-El esquema completo está en `../../apicore.sql`, en la raíz del repositorio (crea la
+El esquema completo está en `../../../apicore.sql`, en la raíz del repositorio (crea la
 base `apicore` y las tablas `users`, `moods` y `users_tokens`):
 
 ```bash
-mysql -u root -p < ../../apicore.sql
+mysql -u root -p < ../../../apicore.sql
 ```
 
 ## Configuración
@@ -159,7 +159,7 @@ restringirlo, define `CORS_ALLOW_ORIGIN` en el `.env` (por ejemplo
 ### Colecciones de cliente
 
 Las colecciones viven en la raíz del repositorio porque no dependen del lenguaje:
-`insomnia_apicore.json` es la fuente de verdad (32 solicitudes que cubren las 15 rutas,
+`insomnia_apicore.json` es la fuente de verdad (39 solicitudes que cubren las 21 rutas,
 más `HEAD`, `OPTIONS` y el preflight CORS) y `postman_apicore.json` se genera desde ella:
 
 ```bash
@@ -198,7 +198,7 @@ mismo usuario bloquean ese usuario durante 15 minutos (429).
 
 Los errores usan siempre `{"error": "..."}` con el código HTTP correspondiente
 (400 validación, 401 token, 403 permisos, 404 no existe, 405 método, 413 cuerpo
-demasiado grande, 429 demasiados intentos, 503 servidor ocupado).
+demasiado grande, 429 demasiados intentos, 503 base no disponible).
 
 ## Estructura
 
@@ -208,7 +208,7 @@ demasiado grande, 429 demasiados intentos, 503 servidor ocupado).
 ├── server.py            adaptador HTTP: lee la petición y escribe la respuesta
 ├── core/                settings, logger, base de datos, router, seguridad, errores
 │   └── http.py          Request y Response (solo datos, sin sockets)
-├── middlewares/         error -> logging -> auth -> endpoint
+├── middlewares/         cors -> error -> logging -> auth -> endpoint
 ├── controllers/         flujo CRUD genérico y reglas por entidad
 ├── models/              acceso a datos (SQL)
 ├── schemas/             validación de campos
@@ -238,7 +238,7 @@ CRUD quedan creadas y protegidas por token.
 
 ## Pruebas
 
-Las pruebas de integración viven en la raíz (`../../tests/integration`) y son las mismas
+Las pruebas de integración viven en la raíz (`../../../tests/integration`) y son las mismas
 para las dos implementaciones: hablan HTTP y no importan código de ninguna de las dos.
 Se elige el servidor con `API_LANGUAGE`.
 
@@ -247,15 +247,15 @@ Se elige el servidor con `API_LANGUAGE`.
 python3 -m unittest discover -s tests -t .
 
 # Integración contra el API en Python
-cd ../.. && python3 -m unittest discover -s tests -t .
+cd ../../.. && python3 -m unittest discover -s tests -t .
 
 # Integración contra el API en PHP
-cd ../.. && API_LANGUAGE=php python3 -m unittest discover -s tests -t .
+cd ../../.. && API_LANGUAGE=php python3 -m unittest discover -s tests -t .
 ```
 
 - `tests/unit`: funciones puras, router, middlewares, controladores y el escritor de
   respuestas.
-- `../../tests/integration`: arrancan el servidor en un puerto propio (65432, 65433,
+- `../../../tests/integration`: arrancan el servidor en un puerto propio (65432, 65433,
   65434, 65438, 65439, 65440 para Python; +50 para PHP) y hablan HTTP real.
   **Necesitan MySQL con el esquema cargado**, que incluye las cuentas `godtest`,
   `admintest`, `usertest` y `othertest` (contraseña igual al usuario).
@@ -266,5 +266,5 @@ localízalo con `lsof -nP -iTCP:65433 -sTCP:LISTEN` y ciérralo.
 
 ## Integración continua
 
-`../../.github/workflows/tests.yml` ejecuta la suite completa en cada push y pull
+`../../../.github/workflows/tests.yml` ejecuta la suite completa en cada push y pull
 request, con un servicio MySQL 8.0 y el esquema de `apicore.sql` cargado desde la raíz.

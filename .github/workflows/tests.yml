@@ -23,6 +23,15 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_NAME: apicore
+      DB_USER: root
+      DB_PASSWORD: root
+      # CI-only value: never reuse it outside this workflow
+      JWT_SECRET: ci-only-not-a-production-secret
+
     steps:
       - uses: actions/checkout@v4
 
@@ -36,25 +45,33 @@ jobs:
       - name: Load schema
         run: mysql -h 127.0.0.1 -P 3306 -uroot -proot < apicore.sql
 
-      - name: Run unit tests
+      - name: Python unit tests
         working-directory: api/v1/py
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: '3306'
-          DB_NAME: apicore
-          DB_USER: root
-          DB_PASSWORD: root
-          # CI-only value: never reuse it outside this workflow
-          JWT_SECRET: ci-only-not-a-production-secret
         run: python3 -m unittest discover -s tests -t . -v
 
-      - name: Run integration tests
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: '3306'
-          DB_NAME: apicore
-          DB_USER: root
-          DB_PASSWORD: root
-          # CI-only value: never reuse it outside this workflow
-          JWT_SECRET: ci-only-not-a-production-secret
+      - name: Integration tests against Python
         run: python3 -m unittest discover -s tests -t . -v
+
+      - name: Integration tests against PHP
+        env:
+          API_LANGUAGE: php
+        run: python3 -m unittest discover -s tests -t . -v
+
+  php-unit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          extensions: pdo_mysql, mbstring
+
+      - name: Lint every PHP file
+        run: |
+          find api/v1/php -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: PHP unit tests
+        working-directory: api/v1/php
+        run: php tests/run.php

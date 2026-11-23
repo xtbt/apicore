@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from tests.integration import support
 from tests.integration.support import db_connect
 
-PORT = 65438 + support.port_offset()  # Dedicated port for tests, distinct from the default 65000
+PORT = 65438 + support.port_offset()  # Dedicated port for tests, distinct from the default 8000
 BASE_URL = f'http://localhost:{PORT}'
 TIJUANA = ZoneInfo('America/Tijuana')
 

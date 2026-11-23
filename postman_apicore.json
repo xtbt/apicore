@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "apicore API v1",
-    "description": "Coleccion de todos los endpoints disponibles en api/v1/py.\n\nPasos:\n1. Arranca el servidor: cd api/v1/py && python3 main.py (APP_PORT en .env, por defecto 65000).\n2. Ejecuta los cuatro login de la carpeta Auth y copia data.token de cada respuesta en las variables de entorno token_god, token_admin, token_user y token_other.\n3. Ajusta user_id, mood_id y example_id segun los IDs que devuelvan los POST.\n\nUsuarios de prueba: godtest/godtest (God), admintest/admintest (Admin), usertest/usertest (User), othertest/othertest (Other).\nEl rol Other tiene exactamente los mismos privilegios que User.",
+    "description": "Coleccion de todos los endpoints disponibles en api/v1/py.\n\nPasos:\n1. Arranca el servidor: cd api/v1/py && python3 main.py (APP_PORT en .env, por defecto 8000).\n2. Ejecuta los cuatro login de la carpeta Auth y copia data.token de cada respuesta en las variables de entorno token_god, token_admin, token_user y token_other.\n3. Ajusta user_id, mood_id y example_id segun los IDs que devuelvan los POST.\n\nUsuarios de prueba: godtest/godtest (God), admintest/admintest (Admin), usertest/usertest (User), othertest/othertest (Other).\nEl rol Other tiene exactamente los mismos privilegios que User.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -921,7 +921,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:65000"
+      "value": "http://localhost:8000"
     },
     {
       "key": "token_god",
