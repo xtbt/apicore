@@ -158,8 +158,9 @@ restringirlo, define `CORS_ALLOW_ORIGIN` en el `.env` (por ejemplo
 
 ### Colecciones de cliente
 
-`insomnia_apicore.json` es la fuente de verdad: 32 solicitudes que cubren las 15 rutas,
-más `HEAD`, `OPTIONS` y el preflight CORS. `postman_apicore.json` se genera desde ella:
+Las colecciones viven en la raíz del repositorio porque no dependen del lenguaje:
+`insomnia_apicore.json` es la fuente de verdad (32 solicitudes que cubren las 15 rutas,
+más `HEAD`, `OPTIONS` y el preflight CORS) y `postman_apicore.json` se genera desde ella:
 
 ```bash
 python3 generate_postman_collection.py
