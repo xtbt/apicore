@@ -3,11 +3,16 @@
 Layer: controllers. Entity controllers set MODEL_CLASS and SCHEMA, then override
 prepare() or business hooks only when needed. It must never contain SQL.
 """
+from models.base_model import BaseModel
 
 
 class BaseController:
     MODEL_CLASS = None  # Model class of the entity (set by subclasses)
     SCHEMA = None       # Schema module exposing validate(data, partial=False)
+    # Update results the Router maps to HTTP responses (see BaseModel.update)
+    NOT_FOUND = BaseModel.NOT_FOUND
+    UNCHANGED = BaseModel.UNCHANGED
+    UPDATED = BaseModel.UPDATED
     auth_token = None   # Raw bearer token of the current request (set by the Router on protected routes)
     auth_user = None    # Decoded payload of that token (None on public routes)
     query = None        # Query-string parameters of the current request (?page=1&size=10)
@@ -30,8 +35,12 @@ class BaseController:
         if self.SCHEMA is not None:
             self.SCHEMA.validate(data, partial)
 
-    def prepare(self, data, record_id=None):
-        """Hook run after validate(): transform `data` before it is stored (record_id is None on create)."""
+    def prepare(self, data, record_id=None, partial=False):
+        """Hook run after validate(): transform `data` before it is stored.
+
+        record_id is None on create; partial is True on PATCH, so a hook can tell
+        a full write (PUT) from a partial one.
+        """
         return data
 
     def authorize(self, record_id, action, data=None):
@@ -72,7 +81,7 @@ class BaseController:
         """Shared PUT/PATCH flow: authorize, validate, prepare and persist."""
         self.authorize(record_id, 'update', data)
         self.validate(data, partial)
-        return self.model.update(record_id, self.prepare(data, record_id))
+        return self.model.update(record_id, self.prepare(data, record_id, partial))
 
     def delete(self, record_id):
         self.authorize(record_id, 'delete')

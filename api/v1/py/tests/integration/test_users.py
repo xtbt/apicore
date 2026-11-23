@@ -6,21 +6,17 @@ with a dedicated throwaway user; the server subprocess is always terminated.
 """
 import base64
 import json
-import os
-import re
 import secrets
-import subprocess
-import sys
-import time
 import unittest
-import urllib.error
-import urllib.request
+from functools import partial
 
-import mysql.connector
+from tests.integration import support
+from tests.integration.support import db_connect
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PORT = 65433  # Dedicated port for tests, distinct from the default 65000
 BASE_URL = f'http://localhost:{PORT}'
+
+call = partial(support.call, BASE_URL)
 
 server_process = None
 test_user_id = None
@@ -31,59 +27,12 @@ second_user_id = None
 second_username = None
 
 
-def call(method, path, data=None, token=None):
-    """Minimal HTTP client (stdlib only). Returns (status, json_body)."""
-    body = json.dumps(data).encode() if data is not None else b''
-    request = urllib.request.Request(f'{BASE_URL}{path}', data=body, method=method)
-    if token:
-        request.add_header('Authorization', f'Bearer {token}')
-    try:
-        with urllib.request.urlopen(request) as response:
-            return response.status, json.loads(response.read())
-    except urllib.error.HTTPError as error:
-        return error.code, json.loads(error.read())
-
-
-def wait_for_server(timeout=5):
-    """Poll /health until the server answers or timeout is reached."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with urllib.request.urlopen(f'{BASE_URL}/health', timeout=0.5):
-                return True
-        except Exception:
-            time.sleep(0.2)
-    return False
-
-
-def db_connect():
-    """Direct connection to the database configured in .env (test housekeeping only)."""
-    config = {}
-    with open(os.path.join(ROOT, '.env')) as env_file:
-        for line in env_file:
-            match = re.match(r'([A-Z_]+)=(.*)', line.strip())
-            if match:
-                config[match.group(1)] = match.group(2)
-    return mysql.connector.connect(
-        host=config.get('DB_HOST', 'localhost'), port=int(config.get('DB_PORT', 3306)),
-        user=config['DB_USER'], password=config['DB_PASSWORD'], database=config['DB_NAME']
-    )
-
-
 def setUpModule():
     """Start main.py on a dedicated port and register+login a throwaway test user."""
     global server_process, test_user_id, auth_token, test_username, test_password
 
-    env = os.environ.copy()
-    env['APP_PORT'] = str(PORT)
-    server_process = subprocess.Popen(
-        [sys.executable, 'main.py'], cwd=ROOT, env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
+    server_process = support.start_server(PORT, BASE_URL)
     try:
-        if not wait_for_server():
-            raise RuntimeError('Test server did not start on time: ' + server_process.stdout.read().decode())
-
         # Dedicated test user: does not reuse or depend on any real account
         # Username column is varchar(16): keep the generated name within that limit
         test_username = 'usertest_' + secrets.token_hex(3)
@@ -109,17 +58,13 @@ def setUpModule():
 
 def tearDownModule():
     """Delete the test user (re-login if the token was revoked) and stop the server subprocess."""
+    global server_process
     if test_user_id is not None and test_username is not None:
         status, body = call('POST', '/auth/login', {'Username': test_username, 'Password': test_password})
         if status == 200:
             call('DELETE', f'/users/{test_user_id}', token=body['data']['token'])
-    if server_process is not None:
-        server_process.terminate()
-        try:
-            server_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            server_process.kill()
-            server_process.wait()
+    support.stop_server(server_process)
+    server_process = None
 
 
 class TestUsersFlows(unittest.TestCase):

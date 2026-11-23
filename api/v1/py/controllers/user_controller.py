@@ -64,13 +64,16 @@ class UserController(BaseController):
         finally:
             tokens.close()
 
-    def prepare(self, data, record_id=None):
+    def prepare(self, data, record_id=None, partial=False):
         """Reject duplicated usernames, enforce role permissions and store the password hashed.
 
         The password is required on create and optional on update (omitted = unchanged).
         Only Admin or God may assign a role other than 'User'; self-registration
         (public POST /users) always creates a plain 'User'.
         """
+        data = dict(data)
+        if not partial and 'UserRole' not in data:
+            data['UserRole'] = 'User'  # self-registration and a PUT without a role default to User
         if 'Username' in data:
             existing = self.model.get_by_username(data['Username'])
             if existing and str(existing['UserId']) != str(record_id):
@@ -82,7 +85,6 @@ class UserController(BaseController):
                 raise ForbiddenError('Only Admin or God can assign roles')
             if role == 'God' and caller != 'God':
                 raise ForbiddenError('Only God can assign the God role')
-        data = dict(data)
         if data.get('Password') is not None and not isinstance(data['Password'], str):
             raise ValueError('Password must be a string')
         if data.get('Password'):

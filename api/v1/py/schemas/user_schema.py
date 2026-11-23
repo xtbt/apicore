@@ -17,6 +17,5 @@ def validate(data, partial=False):
         validate_string(data, field, max_length=max_length,
                         required=field in REQUIRED, partial=partial)
     validate_enum(data, 'UserStatus', STATUSES, partial)
-    if not partial:
-        data.setdefault('UserRole', 'User')  # self-registration via POST /users defaults to User
-    validate_enum(data, 'UserRole', ROLES, partial)
+    if 'UserRole' in data:
+        validate_enum(data, 'UserRole', ROLES)

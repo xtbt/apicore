@@ -78,11 +78,11 @@ class Router:
             return handler
 
         def update_result(c, result):
-            if result == c.model.NOT_FOUND:
+            if result == c.NOT_FOUND:
                 return not_found
-            if result == c.model.UNCHANGED:
+            if result == c.UNCHANGED:
                 return 200, {'status': 'ok', 'message': 'No changes to apply'}
-            if result == c.model.UPDATED:
+            if result == c.UPDATED:
                 return 200, {'status': 'ok', 'message': f'{label} updated'}
             raise ValueError(f'Unexpected update result: {result!r}')
 
@@ -120,6 +120,13 @@ class Router:
     def allowed_methods(self, path):
         """HTTP methods registered for `path` (empty list when no pattern matches)."""
         return [route[0] for route in self._matching(path)]
+
+    def allow_header(self, path):
+        """Value for the Allow header of `path`, or None when no route matches."""
+        allowed = self.allowed_methods(path)
+        if not allowed:
+            return None
+        return ', '.join(sorted(set(allowed) | {'HEAD', 'OPTIONS'}))
 
     def dispatch(self, method, path, body, query=None, token=None, user=None):
         """Run the matching route with auth context supplied by middleware.

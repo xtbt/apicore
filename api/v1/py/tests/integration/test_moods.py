@@ -8,64 +8,28 @@ existing account, to avoid touching any real user's credentials.
 The server subprocess is always started on setUpModule and terminated on
 tearDownModule (even on failure), so no process or port is left open.
 """
-import json
-import os
 import secrets
-import subprocess
-import sys
-import time
 import unittest
-import urllib.error
-import urllib.request
+from functools import partial
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tests.integration import support
+
 PORT = 65432  # Dedicated port for tests, distinct from the default 65000
 BASE_URL = f'http://localhost:{PORT}'
+
+call = partial(support.call, BASE_URL)
 
 server_process = None
 test_user_id = None
 auth_token = None
 
 
-def call(method, path, data=None, token=None):
-    """Minimal HTTP client (stdlib only). Returns (status, json_body)."""
-    body = json.dumps(data).encode() if data is not None else b''
-    request = urllib.request.Request(f'{BASE_URL}{path}', data=body, method=method)
-    if token:
-        request.add_header('Authorization', f'Bearer {token}')
-    try:
-        with urllib.request.urlopen(request) as response:
-            return response.status, json.loads(response.read())
-    except urllib.error.HTTPError as error:
-        return error.code, json.loads(error.read())
-
-
-def wait_for_server(timeout=5):
-    """Poll /health until the server answers or timeout is reached."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with urllib.request.urlopen(f'{BASE_URL}/health', timeout=0.5):
-                return True
-        except Exception:
-            time.sleep(0.2)
-    return False
-
-
 def setUpModule():
     """Start main.py on a dedicated port and register+login a throwaway test user."""
     global server_process, test_user_id, auth_token
 
-    env = os.environ.copy()
-    env['APP_PORT'] = str(PORT)
-    server_process = subprocess.Popen(
-        [sys.executable, 'main.py'], cwd=ROOT, env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
+    server_process = support.start_server(PORT, BASE_URL)
     try:
-        if not wait_for_server():
-            raise RuntimeError('Test server did not start on time: ' + server_process.stdout.read().decode())
-
         # Dedicated test user: does not reuse or depend on any real account
         # Username column is varchar(16): keep the generated name within that limit
         test_username = 'moodtest_' + secrets.token_hex(3)
@@ -90,15 +54,11 @@ def setUpModule():
 
 def tearDownModule():
     """Delete the test user (its tokens cascade with it) and stop the server subprocess."""
+    global server_process
     if auth_token is not None and test_user_id is not None:
         call('DELETE', f'/users/{test_user_id}', token=auth_token)
-    if server_process is not None:
-        server_process.terminate()
-        try:
-            server_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            server_process.kill()
-            server_process.wait()
+    support.stop_server(server_process)
+    server_process = None
 
 
 class TestMoodsCRUD(unittest.TestCase):

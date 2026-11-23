@@ -3,78 +3,33 @@
 Layer: tests (integration). Each test starts its own server on a dedicated port
 so a failure cannot leak into the CRUD suites.
 """
-import json
-import os
 import socket
-import subprocess
-import sys
 import threading
-import time
 import unittest
-import urllib.error
-import urllib.request
+from functools import partial
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from tests.integration import support
+
 PORT = 65439
 BASE_URL = f'http://localhost:{PORT}'
 MAX_BODY_BYTES = 1024 * 1024
 
+call = partial(support.call, BASE_URL)
+
 server_process = None
-
-
-def call(method, path, data=None, token=None):
-    """Minimal HTTP client (stdlib only). Returns (status, json_body)."""
-    body = json.dumps(data).encode() if data is not None else b''
-    request = urllib.request.Request(f'{BASE_URL}{path}', data=body, method=method)
-    if token:
-        request.add_header('Authorization', f'Bearer {token}')
-    try:
-        with urllib.request.urlopen(request) as response:
-            return response.status, json.loads(response.read())
-    except urllib.error.HTTPError as error:
-        return error.code, json.loads(error.read())
-
-
-def wait_for_server(timeout=5):
-    """Poll /health until the server answers or timeout is reached."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with urllib.request.urlopen(f'{BASE_URL}/health', timeout=0.5):
-                return True
-        except Exception:
-            time.sleep(0.2)
-    return False
 
 
 def start_server(extra_env=None):
     """Start main.py on PORT and wait until /health answers."""
     global server_process
-    env = os.environ.copy()
-    env['APP_PORT'] = str(PORT)
-    env.update(extra_env or {})
-    server_process = subprocess.Popen(
-        [sys.executable, 'main.py'], cwd=ROOT, env=env,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    )
-    if not wait_for_server():
-        stop_server()
-        raise RuntimeError('Test server did not start on time')
+    server_process = support.start_server(PORT, BASE_URL, extra_env)
 
 
 def stop_server():
     """Terminate the server subprocess and wait for the port to be released."""
     global server_process
-    if server_process is not None:
-        server_process.terminate()
-        try:
-            server_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            server_process.kill()
-            server_process.wait()
-        if server_process.stdout is not None:
-            server_process.stdout.close()
-        server_process = None
+    support.stop_server(server_process)
+    server_process = None
 
 
 class TestDatabaseOutage(unittest.TestCase):
@@ -158,14 +113,17 @@ class TestConcurrentWrites(unittest.TestCase):
         stop_server()
 
     def test_parallel_patches_all_succeed(self):
-        statuses = []
+        results = []
         lock = threading.Lock()
 
         def patch(status_value):
-            status, _body = call('PATCH', f'/moods/{self.mood_id}',
-                                 {'MoodStatus': status_value}, token=self.token)
+            try:
+                status, _body = call('PATCH', f'/moods/{self.mood_id}',
+                                     {'MoodStatus': status_value}, token=self.token)
+            except Exception as error:  # recorded, so a transport failure is visible
+                status = repr(error)
             with lock:
-                statuses.append(status)
+                results.append(status)
 
         threads = [threading.Thread(target=patch, args=('Inactive' if i % 2 else 'Active',))
                    for i in range(8)]
@@ -174,7 +132,7 @@ class TestConcurrentWrites(unittest.TestCase):
         for thread in threads:
             thread.join()
 
-        self.assertEqual(statuses, [200] * 8)
+        self.assertEqual(results, [200] * 8)
         status, body = call('GET', f'/moods/{self.mood_id}', token=self.token)
         self.assertEqual(status, 200)
         self.assertIn(body['data']['MoodStatus'], ('Active', 'Inactive'))
