@@ -6,7 +6,6 @@ throwaway user that is deleted afterwards. The server subprocess is always
 terminated, so no process or port is left open.
 """
 import re
-import secrets
 import unittest
 from datetime import datetime, timedelta
 from functools import partial
@@ -29,18 +28,12 @@ test_password = 'TzPass123'
 
 
 def setUpModule():
-    global server_process, server_log, test_user_id, test_username
+    global server_process, server_log, test_user_id, test_username, test_password
     server_process = support.start_server(PORT, BASE_URL)
     server_log = support.start_log_reader(server_process)
     try:
-        test_username = 'tztest_' + secrets.token_hex(3)
-        status, body = call('POST', '/users', {
-            'Username': test_username, 'Password': test_password,
-            'Name': 'Tz', 'PaternalSurname': 'Tester', 'UserStatus': 'Active'
-        })
-        if status != 200:
-            raise RuntimeError(f'could not register the test user: {status} {body}')
-        test_user_id = body['ID']
+        test_user_id, test_username, test_password, _token = support.register_test_user(
+            BASE_URL, 'tztest', 'Tz')
     except Exception:
         tearDownModule()
         raise

@@ -7,6 +7,7 @@ suites do not keep four copies of it.
 import json
 import os
 import re
+import secrets
 import subprocess
 import sys
 import threading
@@ -42,6 +43,27 @@ def wait_for_server(base_url, timeout=5):
         except Exception:
             time.sleep(0.2)
     return False
+
+
+def register_test_user(base_url, prefix, name='Tester'):
+    """Create and log in a throwaway user. Returns (user_id, username, password, token).
+
+    Username column is varchar(16), so the generated name stays within that limit.
+    """
+    username = f'{prefix}_' + secrets.token_hex(3)
+    password = 'TestPass123'
+    status, body = call(base_url, 'POST', '/users', {
+        'Username': username, 'Password': password,
+        'Name': name, 'PaternalSurname': 'Tester', 'UserStatus': 'Active'
+    })
+    if status != 200:
+        raise RuntimeError(f'could not register the test user: {status} {body}')
+    user_id = body['ID']
+    status, body = call(base_url, 'POST', '/auth/login',
+                        {'Username': username, 'Password': password})
+    if status != 200:
+        raise RuntimeError(f'could not log in with the test user: {status} {body}')
+    return user_id, username, password, body['data']['token']
 
 
 def start_server(port, base_url, extra_env=None):

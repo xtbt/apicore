@@ -74,7 +74,7 @@ class Router:
 
         def update_with(action):
             def handler(c, p, body):
-                return update_result(c, action(c, p['id'], json_object(body)))
+                return update_result(c, getattr(c, action)(p['id'], json_object(body)))
             return handler
 
         def update_result(c, result):
@@ -98,10 +98,10 @@ class Router:
         self.add_route('POST', path, controller_class, create,
                        public or 'POST' in public_methods)
         self.add_route('PUT', item, controller_class,
-                       update_with(lambda c, i, d: c.update(i, d)),
+                       update_with('update'),
                        public or 'PUT' in public_methods)
         self.add_route('PATCH', item, controller_class,
-                       update_with(lambda c, i, d: c.patch(i, d)),
+                       update_with('patch'),
                        public or 'PATCH' in public_methods)
         self.add_route('DELETE', item, controller_class, delete,
                        public or 'DELETE' in public_methods)

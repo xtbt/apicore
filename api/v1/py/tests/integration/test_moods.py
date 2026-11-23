@@ -8,7 +8,6 @@ existing account, to avoid touching any real user's credentials.
 The server subprocess is always started on setUpModule and terminated on
 tearDownModule (even on failure), so no process or port is left open.
 """
-import secrets
 import unittest
 from functools import partial
 
@@ -30,21 +29,8 @@ def setUpModule():
 
     server_process = support.start_server(PORT, BASE_URL)
     try:
-        # Dedicated test user: does not reuse or depend on any real account
-        # Username column is varchar(16): keep the generated name within that limit
-        test_username = 'moodtest_' + secrets.token_hex(3)
-        status, body = call('POST', '/users', {
-            'Username': test_username, 'Password': 'TestPass123',
-            'Name': 'Moods', 'PaternalSurname': 'Tester', 'UserStatus': 'Active'
-        })
-        if status != 200:
-            raise RuntimeError(f'could not register the test user: {status} {body}')
-        test_user_id = body['ID']
-
-        status, body = call('POST', '/auth/login', {'Username': test_username, 'Password': 'TestPass123'})
-        if status != 200:
-            raise RuntimeError(f'could not log in with the test user: {status} {body}')
-        auth_token = body['data']['token']
+        test_user_id, test_username, _password, auth_token = support.register_test_user(
+            BASE_URL, 'moodtest', 'Moods')
     except Exception:
         # unittest does not call tearDownModule when setUpModule raises,
         # so the server subprocess must be stopped here to avoid a leak

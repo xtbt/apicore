@@ -7,10 +7,10 @@ request objects, no status codes. core/security.py holds the pure crypto.
 """
 from datetime import datetime
 
-from utils.date_utils import isoformat_from_timestamp, utc_from_timestamp, utc_now
 from core.exceptions import UnauthorizedError
 from core.security import encode_token, generate_payload, hash_token, verify_token
 from models.user_token import UserToken
+from utils.date_utils import isoformat_from_timestamp, utc_from_timestamp, utc_now
 
 # `users_tokens.TokenExpiration` is NOT NULL, so persistent tokens get a far-future date
 PERSISTENT_EXPIRATION = datetime(9999, 12, 31, 23, 59, 59)

@@ -2,9 +2,7 @@
 
 No server and no database: pure functions only.
 """
-import time
 import unittest
-from unittest.mock import patch
 
 from core.exceptions import UnauthorizedError
 from core.security import (base64url_decode, base64url_encode, encode_token, generate_payload,

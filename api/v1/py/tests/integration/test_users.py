@@ -33,22 +33,8 @@ def setUpModule():
 
     server_process = support.start_server(PORT, BASE_URL)
     try:
-        # Dedicated test user: does not reuse or depend on any real account
-        # Username column is varchar(16): keep the generated name within that limit
-        test_username = 'usertest_' + secrets.token_hex(3)
-        test_password = 'TestPass123'
-        status, body = call('POST', '/users', {
-            'Username': test_username, 'Password': test_password,
-            'Name': 'Users', 'PaternalSurname': 'Tester', 'UserStatus': 'Active'
-        })
-        if status != 200:
-            raise RuntimeError(f'could not register the test user: {status} {body}')
-        test_user_id = body['ID']
-
-        status, body = call('POST', '/auth/login', {'Username': test_username, 'Password': test_password})
-        if status != 200:
-            raise RuntimeError(f'could not log in with the test user: {status} {body}')
-        auth_token = body['data']['token']
+        test_user_id, test_username, test_password, auth_token = support.register_test_user(
+            BASE_URL, 'usertest', 'Users')
     except Exception:
         # unittest does not call tearDownModule when setUpModule raises,
         # so the server subprocess must be stopped here to avoid a leak
