@@ -85,9 +85,68 @@ cierra el puerto limpiamente con Ctrl+C o `SIGTERM`.
 | PUT | `/moods/{id}` | token | Actualización completa |
 | PATCH | `/moods/{id}` | token | Actualización parcial |
 | DELETE | `/moods/{id}` | token | Borra |
+| GET | `/examples` | token | Lista paginada |
+| GET | `/examples/{id}` | token | Lee un registro |
+| POST | `/examples` | token | Crea |
+| PUT | `/examples/{id}` | token | Actualización completa |
+| PATCH | `/examples/{id}` | token | Actualización parcial |
+| DELETE | `/examples/{id}` | token | Borra |
 
 Todas las rutas aceptan `OPTIONS` (204 con la cabecera `Allow`) y `HEAD` donde hay `GET`.
 `POST` sobre una colección devuelve `201` con la cabecera `Location` apuntando al registro creado.
+
+### Roles
+
+`God`, `Admin`, `User` y `Other`. `Other` tiene exactamente los mismos privilegios que
+`User`: existe para que un proyecto de curso pueda mapear sus propios roles sin tocar el
+`enum` de la base. Solo `Admin` y `God` pueden asignar un rol, y solo `God` puede asignar
+`God`.
+
+### La entidad `example`
+
+`/examples` es una tabla de referencia con una columna por tipo de dato común, para que
+veas cómo viaja cada tipo de extremo a extremo:
+
+| Columna | Tipo MySQL | En el JSON |
+| --- | --- | --- |
+| `ExampleName` | `varchar(45)` | string, obligatorio |
+| `ExampleCode` | `char(3)` | string de 3 caracteres |
+| `ExampleDescription` | `text` | string sin límite |
+| `ExamplePrice` | `decimal(10,2)` | string `"19.99"`, nunca float |
+| `ExampleQuantity` | `int` | entero |
+| `ExampleBigNumber` | `bigint` | entero grande |
+| `ExampleRatio` | `float` | número |
+| `ExampleActive` | `tinyint(1)` | `true` / `false` |
+| `ExampleStatus` | `enum` | `"Active"` / `"Inactive"` |
+| `ExampleBirthDate` | `date` | `"YYYY-MM-DD"` |
+| `ExampleCreatedAt` | `datetime` | `"YYYY-MM-DD HH:MM:SS"` |
+| `ExampleStartTime` | `time` | `"HH:MM:SS"` |
+| `ExampleYear` | `year` | entero entre 1901 y 2155 |
+| `ExampleMetadata` | `json` | objeto o arreglo |
+| `ExamplePicture` | `blob` | string base64, 87380 caracteres máximo |
+
+La conversión vive en `models/example.py` (`_filter` al escribir, `_public` al leer) y la
+validación en `schemas/example_schema.py`. Es el archivo que conviene copiar cuando una
+entidad propia necesite JSON, binarios o fechas.
+
+`ExamplePrice` se devuelve como **string** a propósito: `DECIMAL` existe para no perder
+precisión en dinero, y convertir a `float` la perdería. Si tu entidad maneja importes,
+haz lo mismo y deja el redondeo al cliente.
+
+### Alcance y límites conocidos
+
+Decisiones conscientes de esta BETA, para que no sorprendan a quien la use como base:
+
+- **`/examples` no tiene regla de propiedad.** Cualquier usuario autenticado ve todas las
+  filas, igual que en `/moods`. Es lo deseable para una tabla de referencia; si tu entidad
+  necesita aislamiento por usuario, sobrescribe `authorize()` en el controlador.
+- **El rate limiter vive en memoria y por proceso.** Se reinicia con el servidor y no se
+  comparte entre instancias; con varios procesos cada uno lleva su propia cuenta.
+- **`/health` consulta la base** con `SELECT 1` y responde 503 si no está disponible.
+- **Sin migraciones.** `apicore.sql` es el esquema inicial; al añadir columnas hay que
+  alterar la tabla a mano.
+- **`http.server` no es para producción.** Sirve para enseñar y para desarrollo local;
+  un despliegue real necesita un servidor WSGI/ASGI delante.
 
 ### CORS
 
@@ -185,8 +244,9 @@ python3 -m unittest discover -s tests -t .
 - `tests/unit`: funciones puras, router, middlewares, controladores y el escritor de
   respuestas. No necesitan MySQL ni red.
 - `tests/integration`: arrancan `main.py` en un puerto propio (65432, 65433, 65434,
-  65438, 65439) y hablan HTTP real. **Necesitan MySQL con el esquema cargado**, que
-  incluye las cuentas `godtest`, `admintest` y `usertest` (contraseña igual al usuario).
+  65438, 65439, 65440) y hablan HTTP real. **Necesitan MySQL con el esquema cargado**, que
+  incluye las cuentas `godtest`, `admintest`, `usertest` y `othertest` (contraseña igual al
+  usuario).
 
 Las pruebas de integración crean usuarios y moods temporales y los borran al terminar.
 Si un puerto queda ocupado por una corrida anterior, el módulo falla al arrancar:

@@ -55,6 +55,44 @@ INSERT INTO `moods` (`MoodId`, `MoodName`, `MoodStatus`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `example`
+--
+-- Reference entity: one column per common MySQL data type, so a student can
+-- copy the pattern (SQL + model + schema + controller + router) for their own
+-- tables. Every column is optional except the name, so a minimal POST is
+-- {"ExampleName": "..."}.
+--
+
+DROP TABLE IF EXISTS `example`;
+CREATE TABLE `example` (
+  `ExampleId` int(10) UNSIGNED NOT NULL,
+  `ExampleName` varchar(45) NOT NULL COMMENT 'varchar: short text with a length limit',
+  `ExampleCode` char(3) DEFAULT NULL COMMENT 'char: fixed-length text',
+  `ExampleDescription` text COMMENT 'text: long free text',
+  `ExamplePrice` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT 'decimal: exact money amount',
+  `ExampleQuantity` int(11) NOT NULL DEFAULT '0' COMMENT 'int: whole number',
+  `ExampleBigNumber` bigint(20) NOT NULL DEFAULT '0' COMMENT 'bigint: very large whole number',
+  `ExampleRatio` float NOT NULL DEFAULT '0' COMMENT 'float: approximate number',
+  `ExampleActive` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'tinyint(1): boolean (0 = false, 1 = true)',
+  `ExampleStatus` enum('Active','Inactive') NOT NULL DEFAULT 'Active' COMMENT 'enum: one value from a fixed list',
+  `ExampleBirthDate` date DEFAULT NULL COMMENT 'date: calendar day (YYYY-MM-DD)',
+  `ExampleCreatedAt` datetime DEFAULT NULL COMMENT 'datetime: date and time (YYYY-MM-DD HH:MM:SS)',
+  `ExampleStartTime` time DEFAULT NULL COMMENT 'time: time of day (HH:MM:SS)',
+  `ExampleYear` year(4) DEFAULT NULL COMMENT 'year: four-digit year',
+  `ExampleMetadata` json DEFAULT NULL COMMENT 'json: structured object or array',
+  `ExamplePicture` blob COMMENT 'blob: binary data, sent and received as base64'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Reference table: one column per common data type';
+
+--
+-- Dumping data for table `example`
+--
+
+INSERT INTO `example` (`ExampleId`, `ExampleName`, `ExampleCode`, `ExampleDescription`, `ExamplePrice`, `ExampleQuantity`, `ExampleBigNumber`, `ExampleRatio`, `ExampleActive`, `ExampleStatus`, `ExampleBirthDate`, `ExampleCreatedAt`, `ExampleStartTime`, `ExampleYear`, `ExampleMetadata`, `ExamplePicture`) VALUES
+(1, 'Sample row', 'ABC', 'Every column filled, so the JSON shape is visible in one GET.', '19.99', 7, 9007199254740993, 0.5, 1, 'Active', '2000-01-31', '2026-01-31 08:30:00', '08:30:00', 2026, '{"tags": ["demo", "reference"], "level": 3}', 0x89504e470d0a1a0a);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -67,22 +105,23 @@ CREATE TABLE `users` (
   `PaternalSurname` varchar(25) NOT NULL,
   `MaternalSurname` varchar(25) DEFAULT NULL,
   `UserStatus` enum('Active','Inactive') NOT NULL,
-  `UserRole` enum('God','Admin','User') NOT NULL DEFAULT 'User'
+  `UserRole` enum('God','Admin','User','Other') NOT NULL DEFAULT 'User'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='API test users table';
 
 --
 -- Dumping data for table `users`
 --
--- godtest/admintest/usertest are the documented test accounts (password = username)
--- used by the integration suite and the Insomnia/Postman collections.
+-- The four documented test accounts (password = username) used by the
+-- integration suite and the Insomnia/Postman collections.
+-- Role 'Other' has exactly the same privileges as 'User': it exists so a
+-- student project can map its own extra roles without touching the enum.
 --
 
 INSERT INTO `users` (`UserId`, `Username`, `Password`, `Name`, `PaternalSurname`, `MaternalSurname`, `UserStatus`, `UserRole`) VALUES
-(1, 'test', 'd480164bc4aa430a9a97e920d5aba2ab:58fe6400cf00bac8e3cea6dc093bc8288eab4ff5d482772c85b607a6e200a171', 'test', 'test', '', 'Active', 'User'),
-(2, 'jonny', 'pbkdf2_sha256$100000$8d671f3b5d29d550431858ff49a74b51$883dab57313a9d0a42f7c7d86eda3853b6db6ff39525e3f57b58398e86e52dad', 'jonny', 'tijuana', 'bc', 'Active', 'User'),
-(3, 'godtest', 'pbkdf2_sha256$100000$35fbf0a5632275faa36b8d9cc3eff48b$e2e2da65888f538d345f2289575d0d56d67b053f4038b58fec8684be4518ecdb', 'God', 'Test', '', 'Active', 'God'),
-(4, 'admintest', 'pbkdf2_sha256$100000$f0ef49a8ab34322ee34a4279841ebc47$fb17c7452101ed521e4557f97a545290fd23facc9f16d7c162b49107226153f0', 'Admin', 'Test', '', 'Active', 'Admin'),
-(5, 'usertest', 'pbkdf2_sha256$100000$d120fc9a208b384df26170bebe9744a3$94fec08155da73dc988bd104fdc557097c59350e29bbe8fb6ff78dd1480288f8', 'User', 'Test', '', 'Active', 'User');
+(1, 'godtest', 'pbkdf2_sha256$100000$af69900822746ff0712e3d58b2aa241c$adaf5dc10f554d78bc81868e1370681dedc22501389b70caa25bdfdfa8524b6a', 'God', 'Test', '', 'Active', 'God'),
+(2, 'admintest', 'pbkdf2_sha256$100000$a08ef925ffcc3c334ee90413d98c838c$cf1b0a6f8dc5ffc2b61cfef2b877a5523d3f3493e9aa227745b13ef82d884eb6', 'Admin', 'Test', '', 'Active', 'Admin'),
+(3, 'usertest', 'pbkdf2_sha256$100000$5b45c090eb1e4687dd45dfe9809cc52d$b7695b5b75f3880dcffb53448da476651978e6b2d1c37978a49d87ee5f49ad50', 'User', 'Test', '', 'Active', 'User'),
+(4, 'othertest', 'pbkdf2_sha256$100000$9ec9d962a48ead9f3e91fecaf4ff7ddc$dc7e26b2c5ffebbbd85de8bb9e6bd15be1c9d3953736f1349b6e83f150089d85', 'Other', 'Test', '', 'Active', 'Other');
 
 -- --------------------------------------------------------
 
@@ -110,6 +149,12 @@ ALTER TABLE `moods`
   ADD PRIMARY KEY (`MoodId`);
 
 --
+-- Indexes for table `example`
+--
+ALTER TABLE `example`
+  ADD PRIMARY KEY (`ExampleId`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -135,10 +180,16 @@ ALTER TABLE `moods`
   MODIFY `MoodId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
+-- AUTO_INCREMENT for table `example`
+--
+ALTER TABLE `example`
+  MODIFY `ExampleId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `UserId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `UserId` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `users_tokens`

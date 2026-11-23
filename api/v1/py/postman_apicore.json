@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "apicore API v1",
-    "description": "Coleccion de todos los endpoints disponibles en api/v1/py.\n\nPasos:\n1. Arranca el servidor: cd api/v1/py && python3 main.py (APP_PORT en .env, por defecto 65000).\n2. Ejecuta los tres login de la carpeta Auth y copia data.token de cada respuesta en las variables de entorno token_god, token_admin y token_user.\n3. Ajusta user_id y mood_id segun los IDs que devuelvan los POST.\n\nUsuarios de prueba: godtest/godtest (God), admintest/admintest (Admin), usertest/usertest (User).",
+    "description": "Coleccion de todos los endpoints disponibles en api/v1/py.\n\nPasos:\n1. Arranca el servidor: cd api/v1/py && python3 main.py (APP_PORT en .env, por defecto 65000).\n2. Ejecuta los cuatro login de la carpeta Auth y copia data.token de cada respuesta en las variables de entorno token_god, token_admin, token_user y token_other.\n3. Ajusta user_id, mood_id y example_id segun los IDs que devuelvan los POST.\n\nUsuarios de prueba: godtest/godtest (God), admintest/admintest (Admin), usertest/usertest (User), othertest/othertest (Other).\nEl rol Other tiene exactamente los mismos privilegios que User.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -123,6 +123,31 @@
             "header": [],
             "url": "{{base_url}}/auth/logout",
             "description": "Muestra en Allow los métodos admitidos para /auth/logout."
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Login (Other)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "Copia data.token en token_other. El rol Other tiene los mismos privilegios que User.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Username\": \"othertest\",\n  \"Password\": \"othertest\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": [],
           "event": []
@@ -717,6 +742,180 @@
           "event": []
         }
       ]
+    },
+    {
+      "name": "Examples",
+      "description": "Entidad de referencia: una columna por tipo de dato comun. Todas las rutas son protegidas.",
+      "item": [
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/examples",
+            "description": "201 con Location: /examples/{id}. Copia el ID en example_id. ExamplePicture va en base64.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ExampleName\": \"Fila de ejemplo\",\n  \"ExampleCode\": \"ABC\",\n  \"ExampleDescription\": \"Texto largo sin limite practico.\",\n  \"ExamplePrice\": 19.99,\n  \"ExampleQuantity\": 7,\n  \"ExampleBigNumber\": 9007199254740993,\n  \"ExampleRatio\": 0.5,\n  \"ExampleActive\": true,\n  \"ExampleStatus\": \"Active\",\n  \"ExampleBirthDate\": \"2000-01-31\",\n  \"ExampleCreatedAt\": \"2026-01-31 08:30:00\",\n  \"ExampleStartTime\": \"08:30:00\",\n  \"ExampleYear\": 2026,\n  \"ExampleMetadata\": {\n    \"tags\": [\n      \"demo\",\n      \"reference\"\n    ],\n    \"level\": 3\n  },\n  \"ExamplePicture\": \"iVBORw0KGgo=\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/examples?page=1&size=10",
+            "description": "200. Cada fila muestra como vuelve cada tipo: decimal como numero, tinyint(1) como booleano, date/datetime/time como texto ISO, json como objeto y blob como base64.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/examples/{{example_id}}",
+            "description": "200 o 404.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update (PUT completo)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/examples/{{example_id}}",
+            "description": "200. PUT exige ExampleName y ExampleStatus; el resto es opcional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ExampleName\": \"Fila de ejemplo\",\n  \"ExampleCode\": \"ABC\",\n  \"ExampleDescription\": \"Texto largo sin limite practico.\",\n  \"ExamplePrice\": 19.99,\n  \"ExampleQuantity\": 7,\n  \"ExampleBigNumber\": 9007199254740993,\n  \"ExampleRatio\": 0.5,\n  \"ExampleActive\": true,\n  \"ExampleStatus\": \"Active\",\n  \"ExampleBirthDate\": \"2000-01-31\",\n  \"ExampleCreatedAt\": \"2026-01-31 08:30:00\",\n  \"ExampleStartTime\": \"08:30:00\",\n  \"ExampleYear\": 2026,\n  \"ExampleMetadata\": {\n    \"tags\": [\n      \"demo\",\n      \"reference\"\n    ],\n    \"level\": 3\n  },\n  \"ExamplePicture\": \"iVBORw0KGgo=\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update (PATCH parcial)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/examples/{{example_id}}",
+            "description": "200. Solo los campos enviados; repetir el mismo valor devuelve 'No changes to apply'.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ExampleQuantity\": 9,\n  \"ExampleMetadata\": {\n    \"level\": 4\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/examples/{{example_id}}",
+            "description": "200; repetirlo da 404.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_god}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -747,6 +946,14 @@
     {
       "key": "new_username",
       "value": "qa_test01"
+    },
+    {
+      "key": "token_other",
+      "value": ""
+    },
+    {
+      "key": "example_id",
+      "value": "1"
     }
   ]
 }

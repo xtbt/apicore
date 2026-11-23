@@ -8,7 +8,7 @@ from schemas.base_schema import validate_enum, validate_string
 REQUIRED = {'Username': 16, 'Name': 45, 'PaternalSurname': 25}
 OPTIONAL = {'MaternalSurname': 25}
 STATUSES = ('Active', 'Inactive')
-ROLES = ('God', 'Admin', 'User')
+ROLES = ('God', 'Admin', 'User', 'Other')
 
 
 def validate(data, partial=False):

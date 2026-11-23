@@ -372,6 +372,28 @@ class TestUsersFlows(unittest.TestCase):
             'Username': test_username, 'Password': test_password, 'Persistent': 'yes'})
         self.assertEqual((status, body['error']), (400, 'Persistent must be a boolean'))
 
+    def test_11_other_role_has_user_privileges(self):
+        """Role 'Other' behaves exactly like 'User': own account only, no role changes."""
+        status, body = call('POST', '/auth/login',
+                            {'Username': 'othertest', 'Password': 'othertest'})
+        self.assertEqual(status, 200)
+        token = body['data']['token']
+        # The token `sub` claim is the account id, so the test does not hardcode it
+        claims = json.loads(base64.urlsafe_b64decode(
+            token.split('.')[1] + '=' * (-len(token.split('.')[1]) % 4)))
+        own_id = claims['sub']
+
+        # Cannot list users, cannot read another account, cannot escalate
+        self.assertEqual(call('GET', '/users', token=token)[0], 403)
+        self.assertEqual(call('GET', '/users/1', token=token)[0], 403)
+        self.assertEqual(call('PATCH', f'/users/{own_id}', {'UserRole': 'God'}, token)[0], 403)
+
+        # Can read and edit its own account
+        status, body = call('GET', f'/users/{own_id}', token=token)
+        self.assertEqual((status, body['data']['Username']), (200, 'othertest'))
+        status, _body = call('PATCH', f'/users/{own_id}', {'Name': 'Other'}, token)
+        self.assertEqual(status, 200)
+
 
 if __name__ == '__main__':
     unittest.main()

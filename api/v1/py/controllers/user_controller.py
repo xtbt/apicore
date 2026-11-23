@@ -11,6 +11,8 @@ class UserController(BaseController):
     MODEL_CLASS = User
     SCHEMA = user_schema
     PRIVILEGED_ROLES = ('Admin', 'God')  # the only roles allowed to assign UserRole
+    # 'Other' is deliberately absent: it has exactly the same privileges as 'User',
+    # so a student project can map its own extra roles onto it.
 
     def _is_privileged(self):
         """The caller holds Admin or God (the roles that manage other users)."""
