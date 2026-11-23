@@ -17,8 +17,8 @@ use Closure;
  *     handler(Request): Response
  *
  * Request and Response (Core\Request, Core\Response) only carry data, so no
- * middleware needs to know about sockets: only index.php reads the request and
- * writes the response.
+ * middleware needs to know about sockets: only Core\Application reads the
+ * request and writes the response.
  */
 abstract class Middleware
 {

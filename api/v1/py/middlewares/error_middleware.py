@@ -1,7 +1,7 @@
 """Translate exceptions into Response objects, the pipeline's response shape.
 
-Layer: middlewares (cross-cutting). Outermost layer: nothing above it can fail,
-so every error leaves the pipeline as a uniform JSON body.
+Layer: middlewares (cross-cutting). Sits inside cors_middleware, so every error
+leaves the pipeline as a uniform JSON body that still carries the CORS headers.
 """
 import logging
 

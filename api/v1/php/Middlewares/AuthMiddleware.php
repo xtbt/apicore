@@ -21,7 +21,7 @@ final class AuthMiddleware extends Middleware
     /**
      * The Router owns the route table, so this layer asks it whether the route
      * is public (routePublic). The token is checked with
-     * `authenticator(token): array`, injected from index.php so this module has
+     * `authenticator(token): array`, injected from Core\Application so this module has
      * no model dependency.
      *
      * @param Closure(string): array $authenticator

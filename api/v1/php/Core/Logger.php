@@ -6,7 +6,7 @@ namespace Apicore\Core;
 /**
  * Logging configuration: one console stream shared by every module.
  *
- * Layer: core (cross-cutting). index.php calls configure() once at startup;
+ * Layer: core (cross-cutting). Core\Application calls configure() once at startup;
  * everywhere else uses info()/exception(). The line format matches the Python
  * implementation: "2026-11-23 03:20:00,123 INFO 127.0.0.1 GET /health 200 5ms".
  */

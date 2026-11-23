@@ -1,7 +1,7 @@
 """Middleware contract and pipeline builder.
 
 Layer: middlewares (cross-cutting). A middleware wraps the next handler, so the
-pipeline is read outermost to innermost: error -> logging -> auth -> endpoint.
+pipeline is read outermost to innermost: cors -> error -> logging -> auth -> endpoint.
 Every middleware and the endpoint share one signature:
 
     handler(request) -> Response

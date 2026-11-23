@@ -6,8 +6,8 @@ namespace Apicore\Core;
 /**
  * What an endpoint or middleware returns: status code, payload and headers.
  *
- * Layer: core. It never writes to the socket; index.php serializes the payload
- * and sends it.
+ * Layer: core. It never writes to the socket; Core\Application serializes the
+ * payload and sends it.
  */
 final class Response
 {

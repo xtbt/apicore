@@ -49,6 +49,12 @@ class TestDatabaseOutage(unittest.TestCase):
         self.assertEqual(status, 503)
         self.assertEqual(body, {'error': 'Database unavailable'})
 
+    def test_health_reports_service_unavailable(self):
+        """The probe reports the database, not just the process: 503 with its own body."""
+        status, body = call('GET', '/health')
+        self.assertEqual(status, 503)
+        self.assertEqual(body, {'status': 'error', 'message': 'Database unavailable'})
+
 
 class TestBodySizeBoundary(unittest.TestCase):
     """The 1 MB cap rejects one byte more and accepts exactly the limit."""

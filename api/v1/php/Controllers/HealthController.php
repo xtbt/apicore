@@ -24,7 +24,8 @@ final class HealthController extends BaseController
         try {
             Database::connection()->query('SELECT 1');
         } catch (ServiceUnavailableError | PDOException) {
-            throw new ServiceUnavailableError('Database unavailable');
+            // Same body as the Python probe: the status is the error, not a generic message
+            return new Response(503, ['status' => 'error', 'message' => 'Database unavailable']);
         }
         return new Response(200, ['status' => 'ok', 'message' => 'Server is running']);
     }
