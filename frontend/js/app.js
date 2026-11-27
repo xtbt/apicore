@@ -9,7 +9,7 @@
   const UI = global.UI;
   const STORAGE_TOKEN = 'apicore.token';
   const STORAGE_BASE = 'apicore.baseUrl';
-  const DEFAULT_BASE_URL = 'http://localhost:8000';
+  const DEFAULT_BASE_URL = 'http://localhost:65000';
 
   /* ---------- Entity definitions ---------- */
 
